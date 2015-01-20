@@ -82,7 +82,7 @@ ISR(TIMER3_COMPA_vect)
     }
 
     pointerPos +=1 ;
-    if (pointerPos > 10){
+    if (pointerPos > 9){
       pointerPos = 0;
       messageSend = 0;
     }
