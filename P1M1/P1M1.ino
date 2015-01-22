@@ -1,16 +1,23 @@
 // Project 1 Module 1 CSC 460
 // Written By: Curtis St. Pierre and Mark Roller
 
+// Pin assignments
 const int buttonPin = 6;
 const int rfPin = 13;
 const int servoPin = 9;
 const int potpin = 0;
 
+// Knob to Servo values
 int val = 0;
 int waitTime = 0;
 
+// Message creation variables
 int message[10];
 int pointerPos = 0;
+char c = "A";
+int i;
+
+// Button trigger variables
 int buttonState = 0; 
 int messageSend = 0;
 int buttonReset = 0;
@@ -93,14 +100,19 @@ void buildMessage(){
   // Set start message bits followed by number (least significant first)
   message[0] = 1;
   message[1] = 0;
-  message[2] = 0;
-  message[3] = 0;
-  message[4] = 0;
-  message[5] = 0;
-  message[6] = 1;
-  message[7] = 1;
-  message[8] = 1;
-  message[9] = 1;
+  
+  for (i = 0; i < 10; i++) {
+    message[i+2] = (c >> i) & 1;
+  }
+  
+  //message[2] = 0;
+  //message[3] = 0;
+  //message[4] = 0;
+  //message[5] = 0;
+  //message[6] = 1;
+  //message[7] = 1;
+  //message[8] = 1;
+  //message[9] = 1;
 }
 
 void loop() {
