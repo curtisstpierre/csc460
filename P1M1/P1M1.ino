@@ -14,8 +14,6 @@ int waitTime = 0;
 // Message creation variables
 int message[10];
 int pointerPos = 0;
-char c = "A";
-int i;
 
 // Button trigger variables
 int buttonState = 0; 
@@ -100,19 +98,15 @@ void buildMessage(){
   // Set start message bits followed by number (least significant first)
   message[0] = 1;
   message[1] = 0;
-  
-  for (i = 0; i < 8; i++) {
-    message[i+2] = (c >> i) & 1;
-  }
-  
-  //message[2] = 0;
-  //message[3] = 0;
-  //message[4] = 0;
-  //message[5] = 0;
-  //message[6] = 1;
-  //message[7] = 1;
-  //message[8] = 1;
-  //message[9] = 1;
+  // This sends "A"
+  message[2] = 1;
+  message[3] = 0;
+  message[4] = 0;
+  message[5] = 0;
+  message[6] = 0;
+  message[7] = 0;
+  message[8] = 1;
+  message[9] = 0;
 }
 
 void loop() {
