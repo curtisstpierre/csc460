@@ -101,7 +101,7 @@ void buildMessage(){
   message[0] = 1;
   message[1] = 0;
   
-  for (i = 0; i < 10; i++) {
+  for (i = 0; i < 8; i++) {
     message[i+2] = (c >> i) & 1;
   }
   
