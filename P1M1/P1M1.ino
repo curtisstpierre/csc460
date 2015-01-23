@@ -8,8 +8,9 @@ const int servoPin = 9;
 const int potpin = 0;
 
 // Knob to Servo values
-int val = 0;
+int val = 90;
 int waitTime = 0;
+int new_val = 0;
 
 // Message creation variables
 int message[10];
@@ -21,6 +22,13 @@ int messageSend = 0;
 int buttonReset = 0;
 
 void setup() {
+  
+  /*initialize servo position*/
+  waitTime = (val*11) + 500;
+  digitalWrite(servoPin, HIGH);
+  delayMicroseconds(waitTime);
+  digitalWrite(servoPin, LOW);
+  delay(50); 
   // Used for print
   //Serial.begin(9600);
 
@@ -124,14 +132,22 @@ void loop() {
   }
   
   // Moving the servo
-  val = analogRead(potpin);
-  val = map(val, 0, 1023, 10, 170);
+  if ( 520 < analogRead(potpin) < 505){
+      new_val = analogRead(potpin);
+      new_val = map(new_val, 0, 1023, -5, 5);
+  }
+  else{
+    new_val = 0;
+  }
   
+  if (0 < (val + new_val) < 180){
+    val += new_val;
+  }
   // This site showed me how to do this 
   // http://forum.arduino.cc/index.php?topic=5983.0
   waitTime = (val*11) + 500;
   digitalWrite(servoPin, HIGH);
   delayMicroseconds(waitTime);
   digitalWrite(servoPin, LOW);
-  delay(50); 
+  delay(20); 
 }
