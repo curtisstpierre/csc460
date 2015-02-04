@@ -11,12 +11,12 @@
 
 #include "avr/io.h"
 
-enum {COP1 = 0, COP2, ROBBER1, ROBBER2} COPS_AND_ROBBERS;
+extern enum {COP1 = 0, COP2, ROBBER1, ROBBER2} COPS_AND_ROBBERS;
 extern uint8_t ROOMBA_ADDRESSES[][5];
 
 extern uint8_t ROOMBA_FREQUENCIES[];
 
-enum {
+extern enum {
 	SEND_BYTE,
 	REQUEST_DATA,
 	AIM_SERVO
