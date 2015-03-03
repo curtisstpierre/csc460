@@ -1,13 +1,14 @@
 /**
- * @file os.c
+ * @file os.cpp
  *
  * @brief A Real Time Operating System
  *
  * Our implementation of the operating system described by Mantis Cheng in os.h.
  *
- * @author Scott Craig
- * @author Justin Tanner
+ * @author Mark Roller
+ * @author Curtis St. Pierre
  */
+
 #define F_CPU 16000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -25,6 +26,7 @@ extern int r_main();
 
 #define STACKCONTEXTSIZE (32 + 1 + 1 + 3 + 3)
 #define KERNELARG_STACKOFFSET (32 + 1 + 1 + 1)
+
 /** PPP and PT defined in user application. */
 extern const unsigned char PPP[];
 
@@ -80,14 +82,26 @@ static uint8_t name_in_PPP[MAXNAME + 1];
 static uint8_t volatile error_msg = ERR_RUN_1_USER_CALLED_OS_ABORT;
 
 /** A counter for keeping track of the number of ticks that have passed since the init_os() function call */
-static unsigned int cur_ticks = 0;
+static uint16_t cur_ticks;
+static uint16_t timer_val;
 
+/** Struct defining the values that are part of a service */
+typedef struct service{
+    uint16_t length;
+    queue_t taskQueue;
+    uint16_t val;
+};
+
+/** Defines how services are kept track of */
+static SERVICE services[MAXSERVICENUMBER]; 
+static uint16_t curr_service = 0; 
 
 /* Forward declarations */
 /* kernel */
 static void kernel_main_loop(void);
 static void kernel_dispatch(void);
 static void kernel_handle_request(void);
+
 /* context switching */
 static void exit_kernel(void) __attribute((noinline, naked));
 static void enter_kernel(void) __attribute((noinline, naked));
@@ -95,8 +109,8 @@ extern "C" void TIMER1_COMPA_vect(void) __attribute__ ((signal, naked));
 
 static int kernel_create_task();
 static void kernel_terminate_task(void);
-/* queues */
 
+/* queues */
 static void enqueue(queue_t* queue_ptr, task_descriptor_t* task_to_add);
 static task_descriptor_t* dequeue(queue_t* queue_ptr);
 
@@ -105,9 +119,6 @@ static void check_PPP_names(void);
 static void idle (void);
 static void _delay_25ms(void);
 
-/*
- * FUNCTIONS
- */
 /**
  *  @brief The idle task does nothing but busy loop.
  */
@@ -442,9 +453,30 @@ static void exit_kernel(void)
     asm volatile ("ret\n"::);
 }
 
-unsigned int Now() {
-	return cur_ticks;
+/**
+ * @brief Returns number of milliseconds that have occured since OS_init was called
+ */
+uint16_t Now() {
+	return (cur_ticks*5)+((TCNT1 - timer_val)/(F_CPU/TIMER_PRESCALER/1000));
 }
+
+/**
+ * @brief Allows you to initialize a new service if the maximum hasnt been reached
+ */
+SERVICE *Service_Init(){
+    if(curr_service + 1 > MAXSERVICENUMBER){
+        error_msg = ERR_RUN_6_INIT_SERVICE_MAX_ERROR;
+        OS_Abort(); 
+    }
+
+    services[curr_service].val = 0;
+    services[curr_service].taskQueue.head = NULL;
+    services[curr_service].taskQueue.tail = NULL;
+    services[curr_service].length = 0;
+
+    return &(services[curr_service++]);
+}
+
 /**
  * @fn enter_kernel
  *
@@ -539,6 +571,8 @@ void TIMER1_COMPA_vect(void)
      * Prepare for next tick interrupt.
      */
     OCR1A += TICK_CYCLES;
+    cur_ticks++; 
+    timer_val = TCNT1; 
 
     /*
      * Restore the kernel context. (The stack pointer is restored again.)

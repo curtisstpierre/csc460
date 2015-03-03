@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 /**
- * \file os.h
+ * \file os.h 
  * \brief A simple RTOS interface  
  *
  * \mainpage A Simple RTOS
@@ -181,7 +181,10 @@ extern "C" {
 /* limits */
 
 /** max. number of processes supported */  
-#define MAXPROCESS		8   
+#define MAXPROCESS		8 
+
+/** max. number of services supported */
+#define MAXSERVICENUMBER 4 
 
 /** time resolution */
 #define TICK			    5     // resolution of system clock in milliseconds
@@ -270,7 +273,6 @@ void OS_Abort();
 int Task_Create(void(*f)(void), int arg, unsigned int level, unsigned int name);
 int8_t   Task_Create_System(void (*f)(void), int16_t arg);
 int8_t   Task_Create_RR(    void (*f)(void), int16_t arg);
-unsigned int Now();
 
  /**
    * \param f a parameterless function to be created as a process instance

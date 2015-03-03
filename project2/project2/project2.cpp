@@ -46,6 +46,23 @@ void foo2(){
 	}
 }
 
+void fooNow(){
+    uint16_t val = 0;
+    uint16_t i = 0; 
+
+    DDRB = 1 << 7;          
+    while(1){
+        _delay_ms(500);  
+        for(;;){
+            val = Now()%5; 
+            if(val == 3){
+                PORTB ^= 1 << 7; 
+                break; 
+            }
+        }
+    }
+}
+
 extern int r_main() {
 	_delay_ms(200);
 
@@ -53,5 +70,7 @@ extern int r_main() {
 	Task_Create(foo, 0, RR, 0);
 	Task_Create(foo1, 0, RR, 0);
 	Task_Create(foo2, 0, RR, 0);
+
+	//Service_Init();
 	return 0;
 }
