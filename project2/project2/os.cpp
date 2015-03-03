@@ -8,7 +8,7 @@
  * @author Scott Craig
  * @author Justin Tanner
  */
-
+#define F_CPU 16000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -23,6 +23,8 @@
 /** @brief main function provided by user application. The first task to run. */
 extern int r_main();
 
+#define STACKCONTEXTSIZE (32 + 1 + 1 + 3 + 3)
+#define KERNELARG_STACKOFFSET (32 + 1 + 1 + 1)
 /** PPP and PT defined in user application. */
 extern const unsigned char PPP[];
 
@@ -300,9 +302,11 @@ static void kernel_handle_request(void)
  * is used, the interrupts need to be disabled, or they already are disabled.
  */
 #define    SAVE_CTX_TOP()       asm volatile (\
-    "push   r31             \n\t"\
-    "in     r31,__SREG__    \n\t"\
-    "cli                    \n\t"::); /* Disable interrupt */
+"push   r31             \n\t"\
+"in     r31,0X3C        \n\t"\
+"push   r31             \n\t"\
+"in     r31,__SREG__    \n\t"\
+"cli                    \n\t"::); /* Disable interrupt */
 
 #define STACK_SREG_SET_I_BIT()    asm volatile (\
     "ori    r31, 0x80        \n\t"::);
@@ -382,7 +386,9 @@ static void kernel_handle_request(void)
     "pop    r29             \n\t"\
     "pop    r30             \n\t"\
     "pop    r31             \n\t"\
-	"out    __SREG__, r31    \n\t"\
+    "out    __SREG__, r31   \n\t"\
+    "pop    r31             \n\t"\
+    "out    0X3C, r31       \n\t"\
     "pop    r31             \n\t"::);
 
 
@@ -626,8 +632,17 @@ static int kernel_create_task()
      *   the stored SREG, and
      *   registers 30 to 0.
      */
-    uint8_t* stack_top = stack_bottom - (32 + 1 + 2 + 2);
+    uint8_t* stack_top = stack_bottom - STACKCONTEXTSIZE;
 
+
+    int i = 0;
+    for( i=0; i < 31; i++ )
+    {
+	    stack_top[i] = i;
+    }
+    stack_top[31] = 0x55;
+    stack_top[32] = 0xEE;
+    stack_top[33] = 31;
     /* Not necessary to clear the task descriptor. */
     /* memset(p,0,sizeof(task_descriptor_t)); */
 
@@ -644,10 +659,12 @@ static int kernel_create_task()
      * (ret and reti) pop addresses off in BIG ENDIAN (most sig. first, least sig.
      * second), even though the AT90 is LITTLE ENDIAN machine.
      */
-    stack_top[34] = (uint8_t)((uint16_t)(kernel_request_create_args.f) >> 8);
-    stack_top[35] = (uint8_t)(uint16_t)(kernel_request_create_args.f);
-    stack_top[36] = (uint8_t)((uint16_t)Task_Terminate >> 8);
-    stack_top[37] = (uint8_t)(uint16_t)Task_Terminate;
+    stack_top[KERNELARG_STACKOFFSET+0] = (uint8_t)(0);
+    stack_top[KERNELARG_STACKOFFSET+1] = (uint8_t)((uint16_t)(kernel_request_create_args.f) >> 8);
+    stack_top[KERNELARG_STACKOFFSET+2] = (uint8_t)(uint16_t)(kernel_request_create_args.f);
+    stack_top[KERNELARG_STACKOFFSET+3] = (uint8_t)(0);
+    stack_top[KERNELARG_STACKOFFSET+4] = (uint8_t)((uint16_t)Task_Terminate >> 8);
+    stack_top[KERNELARG_STACKOFFSET+5] = (uint8_t)(uint16_t)Task_Terminate;
 
     /*
      * Make stack pointer point to cell above stack (the top).
@@ -757,7 +774,7 @@ static task_descriptor_t* dequeue(queue_t* queue_ptr)
  */
 static void kernel_update_ticker(void)
 {
-    /* PORTD ^= LED_D5_RED; */
+    /* PORTB ^= LED_D5_RED; */
 
     if(PT > 0)
     {
@@ -928,7 +945,7 @@ void OS_Abort(void)
     Disable_Interrupt();
 
     /* Initialize port for output */
-    DDRD = LED_RED_MASK | LED_GREEN_MASK;
+    DDRB = LED_RED_MASK | LED_GREEN_MASK;
 
     if(error_msg < ERR_RUN_1_USER_CALLED_OS_ABORT)
     {
@@ -944,14 +961,14 @@ void OS_Abort(void)
 
     for(;;)
     {
-        PORTD = (uint8_t)(LED_RED_MASK | LED_GREEN_MASK);
+        PORTB = (uint8_t)(LED_RED_MASK | LED_GREEN_MASK);
 
         for(i = 0; i < 100; ++i)
         {
                _delay_25ms();
         }
 
-        PORTD = (uint8_t) 0;
+        PORTB = (uint8_t) 0;
 
         for(i = 0; i < 40; ++i)
         {
@@ -961,14 +978,14 @@ void OS_Abort(void)
 
         for(j = 0; j < flashes; ++j)
         {
-            PORTD = mask;
+            PORTB = mask;
 
             for(i = 0; i < 10; ++i)
             {
                 _delay_25ms();
             }
 
-            PORTD = (uint8_t) 0;
+            PORTB = (uint8_t) 0;
 
             for(i = 0; i < 10; ++i)
             {
