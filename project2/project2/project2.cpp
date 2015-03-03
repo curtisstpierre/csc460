@@ -50,8 +50,8 @@ extern int r_main() {
 	_delay_ms(200);
 
 	// Round Robin Tasks
-	Task_Create(foo, 0, RR, 0);
-	Task_Create(foo1, 0, RR, 0);
-	Task_Create(foo2, 0, RR, 0);
+	Task_Create_RR(foo, 0);
+	Task_Create_RR(foo1, 0);
+	Task_Create_RR(foo2, 0);
 	return 0;
 }

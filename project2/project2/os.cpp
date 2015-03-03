@@ -1040,6 +1040,79 @@ int Task_Create(void (*f)(void), int arg, unsigned int level, unsigned int name)
     return retval;
 }
 
+/************************************************************************/
+/* Periodic                                                                     */
+/************************************************************************/
+int8_t Task_Create_Periodic(void(*f)(void), int16_t arg, uint16_t period, uint16_t wcet, uint16_t start)
+{
+	int retval;
+	uint8_t sreg;
+
+	sreg = SREG;
+	Disable_Interrupt();
+
+	kernel_request_create_args.f = (voidfuncvoid_ptr)f;
+	kernel_request_create_args.arg = arg;
+	kernel_request_create_args.level = (uint8_t)PERIODIC;
+	kernel_request_create_args.period = period;
+	kernel_request_create_args.wcet = wcet;
+	kernel_request_create_args.start = start;
+
+	kernel_request = TASK_CREATE;
+	enter_kernel();
+
+	retval = kernel_request_retval;
+	SREG = sreg;
+
+	return retval;
+}
+/************************************************************************/
+/*  Create System Task                                                  */
+/************************************************************************/
+int8_t Task_Create_System(void (*f)(void), int16_t arg)
+{
+	int retval;
+	uint8_t sreg;
+
+	sreg = SREG;
+	Disable_Interrupt();
+
+	kernel_request_create_args.f = (voidfuncvoid_ptr)f;
+	kernel_request_create_args.arg = arg;
+	kernel_request_create_args.level = (uint8_t)SYSTEM;
+
+	kernel_request = TASK_CREATE;
+	enter_kernel();
+
+	retval = kernel_request_retval;
+	SREG = sreg;
+
+	return retval;
+}
+
+/************************************************************************/
+/*     Create Round Robin Task                                          */
+/************************************************************************/
+int8_t Task_Create_RR(void (*f)(void), int16_t arg)
+{
+	int retval;
+	uint8_t sreg;
+
+	sreg = SREG;
+	Disable_Interrupt();
+
+	kernel_request_create_args.f = (voidfuncvoid_ptr)f;
+	kernel_request_create_args.arg = arg;
+	kernel_request_create_args.level = (uint8_t)RR;
+
+	kernel_request = TASK_CREATE;
+	enter_kernel();
+
+	retval = kernel_request_retval;
+	SREG = sreg;
+
+	return retval;
+}
 
 /**
   * @brief The calling task gives up its share of the processor voluntarily.

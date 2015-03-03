@@ -33,10 +33,10 @@ extern "C" {
 #define TICK_CYCLES     (((F_CPU / TIMER_PRESCALER) / 1000) * TICK)
 
 /** LEDs for OS_Abort() */
-#define LED_RED_MASK    (uint8_t)(_BV(PB5))
+#define LED_RED_MASK    (uint8_t)(_BV(4) | _BV(7))
 
 /** LEDs for OS_Abort() */
-#define LED_GREEN_MASK    (uint8_t)(_BV(PB6))
+#define LED_GREEN_MASK    (uint8_t)(_BV(5) | _BV(6))
 
 
 /* Typedefs and data structures. */
@@ -79,10 +79,16 @@ typedef struct
     voidfuncvoid_ptr f;
     /** A new task may be created with an argument that it can retrieve later. */
     int arg;
+	/** PERIODIC tasks need a name in the PPP array. */
+	uint8_t                         name;
     /** Priority of the new task: RR, PERIODIC, SYSTEM */
     uint8_t level;
-    /** If the new task is PERIODIC, this is its name in the PPP array. */
-    uint8_t name;
+    /** PERIODIC tasks need a period*/
+    uint16_t period;
+    /*PERIODIC tasks need a worst case run time. */
+    uint16_t wcet;
+    /*PERIODIC tasks need a start time*/
+    uint16_t start;
 }
 create_args_t;
 
@@ -97,14 +103,22 @@ struct td_struct
     uint8_t                         stack[MAXSTACK];
     /** A variable to save the hardware SP into when the task is suspended. */
     uint8_t*               volatile sp;   /* stack pointer into the "workSpace" */
-    /** PERIODIC tasks need a name in the PPP array. */
-    uint8_t                         name;
+    /** PERIODIC tasks need a period*/
+    uint16_t period;
+	/*PERIODIC tasks need a worst case run time. */
+    uint16_t wcet;
+	/*PERIODIC tasks need a start time*/
+    uint16_t start;
     /** The state of the task in this descriptor. */
     task_state_t                    state;
+	/** PERIODIC tasks need a name in the PPP array. */
+	uint8_t                         name;
     /** The argument passed to Task_Create for this task. */
     int                             arg;
     /** The priority (type) of this task. */
     uint8_t                         level;
+    /** A link to the previous task descriptor in the queue holding this task. */
+    task_descriptor_t*              previous;
     /** A link to the next task descriptor in the queue holding this task. */
     task_descriptor_t*              next;
 };
