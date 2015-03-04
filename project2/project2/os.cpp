@@ -960,7 +960,7 @@ void OS_Init()
 
     /*
      * Initialize dead pool to contain all but last task descriptor.
-     *
+     * The last task descriptor is an idle task that can not be assigned to.
      * DEAD == 0, already set in .init4
      */
     for (i = 0; i < MAXPROCESS - 1; i++)
