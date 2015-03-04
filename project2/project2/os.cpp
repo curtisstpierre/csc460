@@ -168,6 +168,7 @@ static void kernel_dispatch(void)
             /* Keep running the current PERIODIC task. */
 			cur_task = NULL;
             task_descriptor_t* periodic_task = periodic_list.head;
+			/* look through all periodic tasks for tasks ready to run */
 			while (periodic_task != NULL){
 				if(periodic_task->ticks <= 0){
 					if(cur_task == NULL){
@@ -176,8 +177,9 @@ static void kernel_dispatch(void)
 						* change ticks_remaining to the worst case execution time of the cur_task.
 						*/
 						cur_task = periodic_task;
-						cur_task->ticks = cur_task->period;
 						ticks_remaining = cur_task->wcet;
+						cur_task->ticks += cur_task->period;
+						
 					}
 					else
 					{
@@ -244,6 +246,27 @@ static void kernel_handle_request(void)
             if(kernel_request_create_args.level == SYSTEM && cur_task->level != SYSTEM)
             {
                 cur_task->state = READY;
+				/* 
+				
+				* If system task interrupts a periodic task
+				* extend out the wcet
+				*/
+				if(cur_task->level == PERIODIC)
+				{
+					/* 
+					* set ticks remaining to +1 to cope for lost time from ticks
+					* the ticks will then be left alone until a periodic task is resumed
+					*/
+					ticks_remaining++;
+					/* 
+					* By storing this value as a negative number
+					* (ticks - period) it shows that it has been interrupted
+					* it then needs to be resumed, but not given a whole new period
+					* this negative value is then added to the period when set to run
+					* puting it back at it's previous time remaining
+					*/
+					cur_task->ticks -= cur_task->period;
+				}
             }
 
             /* 
@@ -867,7 +890,16 @@ static void kernel_update_ticker(void)
 
     if(periodic_list.head != NULL)
     {
-        --ticks_remaining;
+		/*
+		* If current task is periodic lower the ticks remaining
+		* this will stop system calls from killing the OS due to
+		* interrupting periodic tasks going overtime
+		* round robin should not be an issue since they never get preference
+		* over periodic taks
+		*/
+		if(cur_task->level == PERIODIC){
+			--ticks_remaining;
+		}
 
         if(ticks_remaining == 0)
         {
@@ -928,7 +960,7 @@ void OS_Init()
 
     /*
      * Initialize dead pool to contain all but last task descriptor.
-     *
+     * The last task descriptor is an idle task that can not be assigned to.
      * DEAD == 0, already set in .init4
      */
     for (i = 0; i < MAXPROCESS - 1; i++)
