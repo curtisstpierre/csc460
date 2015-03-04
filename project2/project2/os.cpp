@@ -171,11 +171,19 @@ static void kernel_dispatch(void)
 			while (periodic_task != NULL){
 				if(periodic_task->ticks <= 0){
 					if(cur_task == NULL){
+						/* 
+						* setup periodic task to be current task, change ticks to period,
+						* change ticks_remaining to the worst case execution time of the cur_task.
+						*/
 						cur_task = periodic_task;
 						cur_task->ticks = cur_task->period;
+						ticks_remaining = cur_task->wcet;
 					}
 					else
 					{
+						/*
+						* if more than one periodic task is ready abort!
+						*/
 						error_msg = ERR_6_PERIODIC_TASK_COLLISION;
 						OS_Abort();
 					}
@@ -947,13 +955,7 @@ void OS_Init()
     cur_task = task_desc;
     cur_task->state = RUNNING;
     dequeue(&system_queue);
-
-    /* Initilize time slot */
-    if(PT > 0)
-    {
-        ticks_remaining = PPP[1];
-    }
-
+	
     /* Set up Timer 1 Output Compare interrupt,the TICK clock. */
     TIMSK1 |= _BV(OCIE1A);
     OCR1A = TCNT1 + TICK_CYCLES;
