@@ -79,8 +79,6 @@ typedef struct
     voidfuncvoid_ptr f;
     /** A new task may be created with an argument that it can retrieve later. */
     int arg;
-	/** PERIODIC tasks need a name in the PPP array. */
-	uint8_t                         name;
     /** Priority of the new task: RR, PERIODIC, SYSTEM */
     uint8_t level;
     /** PERIODIC tasks need a period*/
@@ -109,10 +107,10 @@ struct td_struct
     uint16_t wcet;
 	/*PERIODIC tasks need a start time*/
     uint16_t start;
+	/*PERIODIC tasks need to keep track of ticks until next run*/
+	uint16_t ticks;
     /** The state of the task in this descriptor. */
     task_state_t                    state;
-	/** PERIODIC tasks need a name in the PPP array. */
-	uint8_t                         name;
     /** The argument passed to Task_Create for this task. */
     int                             arg;
     /** The priority (type) of this task. */
