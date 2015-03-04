@@ -87,9 +87,7 @@ static uint16_t timer_val;
 
 /** Struct defining the values that are part of a service */
 typedef struct service{
-    uint16_t length;
     queue_t taskQueue;
-    uint16_t val;
 };
 
 /** Defines how services are kept track of */
@@ -112,6 +110,7 @@ static void kernel_terminate_task(void);
 
 /* queues */
 static void enqueue(queue_t* queue_ptr, task_descriptor_t* task_to_add);
+static void enqueue_head(queue_t* queue_ptr, task_descriptor_t* task_to_add);
 static task_descriptor_t* dequeue(queue_t* queue_ptr);
 
 static void kernel_update_ticker(void);
@@ -454,30 +453,6 @@ static void exit_kernel(void)
 }
 
 /**
- * @brief Returns number of milliseconds that have occured since OS_init was called
- */
-uint16_t Now() {
-	return (cur_ticks*5)+((TCNT1 - timer_val)/(F_CPU/TIMER_PRESCALER/1000));
-}
-
-/**
- * @brief Allows you to initialize a new service if the maximum hasnt been reached
- */
-SERVICE *Service_Init(){
-    if(curr_service + 1 > MAXSERVICENUMBER){
-        error_msg = ERR_RUN_6_INIT_SERVICE_MAX_ERROR;
-        OS_Abort(); 
-    }
-
-    services[curr_service].val = 0;
-    services[curr_service].taskQueue.head = NULL;
-    services[curr_service].taskQueue.tail = NULL;
-    services[curr_service].length = 0;
-
-    return &(services[curr_service++]);
-}
-
-/**
  * @fn enter_kernel
  *
  * @brief All system calls eventually enter here.
@@ -757,7 +732,7 @@ static void kernel_terminate_task(void)
  */
 
 /**
- * @brief Add a task the head of the queue
+ * @brief Add a task the end of the queue
  *
  * @param queue_ptr the queue to insert in
  * @param task_to_add the task descriptor to add
@@ -777,6 +752,29 @@ static void enqueue(queue_t* queue_ptr, task_descriptor_t* task_to_add)
         /* put task at the back of the queue */
         queue_ptr->tail->next = task_to_add;
         queue_ptr->tail = task_to_add;
+    }
+}
+
+/**
+ * @brief Add a task to the head of the queue
+ *
+ * @param queue_ptr the queue to insert in
+ * @param task_to_add the task descriptor to add
+ */
+static void enqueue_head(queue_t* queue_ptr, task_descriptor_t* task_to_add)
+{
+    task_to_add->next = queue_ptr->head;
+    task_to_add->prev = NULL;
+
+    if(queue_ptr->head == NULL)
+    {
+        queue_ptr->head = task_to_add;
+        queue_ptr->tail = task_to_add;
+    }
+    else
+    {
+        queue_ptr->head->prev = task_to_add;
+        queue_ptr->head = task_to_add;
     }
 }
 
@@ -954,8 +952,6 @@ void OS_Init()
 }
 
 
-
-
 /**
  *  @brief Delay function adapted from <util/delay.h>
  */
@@ -1034,6 +1030,65 @@ void OS_Abort(void)
     }
 }
 
+
+/**
+ * @brief Returns number of milliseconds that have occured since OS_init was called
+ */
+uint16_t Now() {
+    return (cur_ticks*5)+((TCNT1 - timer_val)/(F_CPU/TIMER_PRESCALER/1000));
+}
+
+/**
+ * @brief Allows you to initialize a new service if the maximum hasnt been reached
+ */
+SERVICE *Service_Init() {
+    if(curr_service + 1 > MAXSERVICENUMBER){
+        error_msg = ERR_RUN_6_INIT_SERVICE_MAX_ERROR;
+        OS_Abort(); 
+    }
+
+    services[curr_service].taskQueue.head = NULL;
+    services[curr_service].taskQueue.tail = NULL;
+
+    return &(services[curr_service++]);
+}
+
+void Service_Subscribe( SERVICE *s, int16_t *v ) {
+
+    if(cur_task->level == PERIODIC) {
+        error_msg = ERR_RUN_7_SUBSCRIBE_PERIODIC;
+        OS_Abort();
+    }
+
+    cur_task->state = WAITING;
+    cur_task->value = v;
+    enqueue(&(s->taskQueue), cur_task);
+    
+    Task_Next();
+}
+
+void Service_Publish( SERVICE *s, int16_t v ) {
+
+    task_descriptor_t* sub = dequeue(&(s->taskQueue));
+
+    while(sub != NULL) {
+        if(sub->state == WAITING) {
+            *(sub->value) = v;
+            sub->state = READY;
+
+            if(sub->level == RR) {
+                enqueue_head(&rr_queue, sub);
+            } else if(sub->level == SYSTEM) {
+                // TODO: add interupt if task is a system task and current task is not
+                enqueue_head(&system_queue, sub);
+            } else {
+                error_msg = ERR_RUN_8_SUBSCRIBE_PERIODIC_FOUND;
+                OS_Abort();
+            }
+        }
+        sub = dequeue(&(s->taskQueue));
+    }
+}
 
 /**
  * @param f  a parameterless function to be created as a process instance

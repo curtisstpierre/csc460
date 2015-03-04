@@ -56,6 +56,12 @@ ERR_RUN_5_RTOS_INTERNAL_ERROR,
 /** Error when init services reaches the max services. */
 ERR_RUN_6_INIT_SERVICE_MAX_ERROR,
 
+/** Error when attempting to subscribe a periodic task. */
+ERR_RUN_7_SUBSCRIBE_PERIODIC,
+
+/** Error if a periodic task is found to be queued. */
+ERR_RUN_8_SUBSCRIBE_PERIODIC_FOUND,
+
 };
 
 
