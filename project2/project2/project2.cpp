@@ -39,12 +39,30 @@ void foo2(){
 	}
 }
 
+void fooNow(){
+    uint16_t val = 0;
+
+    DDRB = 1 << 7;          
+    while(1){
+        _delay_ms(500);  
+        for(;;){
+            val = Now()%5; 
+            if(val == 3){
+                PORTB ^= 1 << 7; 
+                break; 
+            }
+        }
+    }
+}
+
 extern int r_main() {
 	_delay_ms(200);
 
-	// Round Robin Tasks
 	Task_Create_RR(foo, 0);
 	Task_Create_RR(foo1, 0);
 	Task_Create_RR(foo2, 0);
+
+	//Service_Init();
+
 	return 0;
 }

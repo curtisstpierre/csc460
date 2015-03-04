@@ -119,6 +119,8 @@ struct td_struct
     task_descriptor_t*              previous;
     /** A link to the next task descriptor in the queue holding this task. */
     task_descriptor_t*              next;
+    /** Value passed in by the publish/subscribe functions */
+    int16_t*                        value;
 };
 
 
