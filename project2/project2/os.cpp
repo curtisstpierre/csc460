@@ -85,10 +85,10 @@ static uint8_t volatile error_msg = ERR_RUN_1_USER_CALLED_OS_ABORT;
 static uint16_t cur_ticks;
 static uint16_t timer_val;
 
-/** Struct defining the values that are part of a service */
-typedef struct service{
+/** initializing service struct */
+struct service{
     queue_t taskQueue;
-};
+}; 
 
 /** Defines how services are kept track of */
 static SERVICE services[MAXSERVICENUMBER]; 
@@ -764,7 +764,6 @@ static void enqueue(queue_t* queue_ptr, task_descriptor_t* task_to_add)
 static void enqueue_head(queue_t* queue_ptr, task_descriptor_t* task_to_add)
 {
     task_to_add->next = queue_ptr->head;
-    task_to_add->prev = NULL;
 
     if(queue_ptr->head == NULL)
     {
@@ -773,7 +772,6 @@ static void enqueue_head(queue_t* queue_ptr, task_descriptor_t* task_to_add)
     }
     else
     {
-        queue_ptr->head->prev = task_to_add;
         queue_ptr->head = task_to_add;
     }
 }

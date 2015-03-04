@@ -48,7 +48,6 @@ void foo2(){
 
 void fooNow(){
     uint16_t val = 0;
-    uint16_t i = 0; 
 
     DDRB = 1 << 7;          
     while(1){
