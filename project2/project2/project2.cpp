@@ -13,13 +13,6 @@
 #include <avr/io.h>
 #include <stdbool.h>
 
-enum PERIODIC_TASK {
-	PIR_CHECK = 1, SONAR_PING, ROOMBA_SENSOR_QUERY, ROOMBA_DRIVE,
-};
-
-extern const unsigned int PT = 4;
-extern const unsigned char PPP[] = { PIR_CHECK, 1, SONAR_PING, 10, ROOMBA_SENSOR_QUERY, 4, ROOMBA_DRIVE, 1 };
-
 void foo(){
     DDRB |= 1 << PB7;
     for(;;){
@@ -65,11 +58,11 @@ void fooNow(){
 extern int r_main() {
 	_delay_ms(200);
 
-	// Round Robin Tasks
-	Task_Create(foo, 0, RR, 0);
-	Task_Create(foo1, 0, RR, 0);
-	Task_Create(foo2, 0, RR, 0);
+	Task_Create_RR(foo, 0);
+	Task_Create_RR(foo1, 0);
+	Task_Create_RR(foo2, 0);
 
 	//Service_Init();
+
 	return 0;
 }

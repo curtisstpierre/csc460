@@ -180,8 +180,9 @@ extern "C" {
   */
 /* limits */
 
-/** max. number of processes supported */  
-#define MAXPROCESS		8 
+/** max. number of processes supported */ 
+/** can only assign MAXPROCESS-1 Threads as the last one is an idle task */ 
+#define MAXPROCESS		8   
 
 /** max. number of services supported */
 #define MAXSERVICENUMBER 4 

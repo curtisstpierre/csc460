@@ -81,8 +81,12 @@ typedef struct
     int arg;
     /** Priority of the new task: RR, PERIODIC, SYSTEM */
     uint8_t level;
-    /** If the new task is PERIODIC, this is its name in the PPP array. */
-    uint8_t name;
+    /** PERIODIC tasks need a period*/
+    uint16_t period;
+    /*PERIODIC tasks need a worst case run time. */
+    uint16_t wcet;
+    /*PERIODIC tasks need a start time*/
+    uint16_t start;
 }
 create_args_t;
 
@@ -97,14 +101,22 @@ struct td_struct
     uint8_t                         stack[MAXSTACK];
     /** A variable to save the hardware SP into when the task is suspended. */
     uint8_t*               volatile sp;   /* stack pointer into the "workSpace" */
-    /** PERIODIC tasks need a name in the PPP array. */
-    uint8_t                         name;
+    /** PERIODIC tasks need a period*/
+    uint16_t period;
+	/*PERIODIC tasks need a worst case run time. */
+    uint16_t wcet;
+	/*PERIODIC tasks need a start time*/
+    uint16_t start;
+	/*PERIODIC tasks need to keep track of ticks until next run*/
+	uint16_t ticks;
     /** The state of the task in this descriptor. */
     task_state_t                    state;
     /** The argument passed to Task_Create for this task. */
     int                             arg;
     /** The priority (type) of this task. */
     uint8_t                         level;
+    /** A link to the previous task descriptor in the queue holding this task. */
+    task_descriptor_t*              previous;
     /** A link to the next task descriptor in the queue holding this task. */
     task_descriptor_t*              next;
     /** Value passed in by the publish/subscribe functions */
