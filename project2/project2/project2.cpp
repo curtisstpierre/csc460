@@ -13,56 +13,99 @@
 #include <avr/io.h>
 #include <stdbool.h>
 
-void foo(){
-    DDRB |= 1 << PB7;
-    for(;;){
-        _delay_ms(500);
-        PORTB ^= 1 << PB7;
-    }
+SERVICE* service;
+
+void system() {
+	PORTB |= 1 << PB2;
+	_delay_ms(5);
+	PORTB ^= 1 << PB2;
+	Task_Next();
 }
 
-void foo1(){
-	_delay_ms(500);
-	DDRB |= 1 << PB6;
-	for(;;){
-		_delay_ms(500);
+void periodic1(){
+	for(;;) {
+		PORTB |= 1 << PB3;
+		_delay_ms(5);
+		Task_Create_System(system, 0);
+		_delay_ms(5);
+		PORTB ^= 1 << PB3;
+		Task_Next();
+	}
+}
+
+void periodic2(){
+	for(;;) {
+		PORTB |= 1 << PB2;
+		_delay_ms(5);
+		PORTB ^= 1 << PB2;
+		Task_Next();
+	}
+}
+
+int16_t system_value;
+int16_t rr_value;
+
+void service_publisher(){
+	for(;;) {
+		PORTB |= 1 << PB3;
+		Service_Publish(service, 255);
+		_delay_ms(5);
+		PORTB ^= 1 << PB3;
+		Task_Next();
+	}
+}
+
+void system_service_subscriber(){
+	for(;;) {
+		PORTB |= 1 << PB2;
+		Service_Subscribe(service, &system_value);
+		_delay_ms(5);
+		PORTB ^= 1 << PB2;
+	}
+}
+
+void rr_service_subscriber(){
+	for(;;) {
+		PORTB |= 1 << PB6;
+		Service_Subscribe(service, &rr_value);
+		_delay_ms(1);
 		PORTB ^= 1 << PB6;
 	}
 }
 
-void foo2(){
-	_delay_ms(800);
-	DDRB |= 1 << PB5;
-	for(;;){
-		_delay_ms(500);
+void rr2(){
+	for(;;) {
+		PORTB |= 1 << PB5;
+		_delay_ms(1);
 		PORTB ^= 1 << PB5;
 	}
 }
 
-void fooNow(){
-    uint16_t val = 0;
-
-    DDRB = 1 << 7;          
-    while(1){
-        _delay_ms(500);  
-        for(;;){
-            val = Now()%5; 
-            if(val == 3){
-                PORTB ^= 1 << 7; 
-                break; 
-            }
-        }
-    }
+void rr3(){
+	for(;;) {
+		PORTB |= 1 << PB4;
+		_delay_ms(1);
+		PORTB ^= 1 << PB4;
+	}
 }
 
-extern int r_main() {
-	_delay_ms(200);
-
-	Task_Create_RR(foo, 0);
-	Task_Create_RR(foo1, 0);
-	Task_Create_RR(foo2, 0);
-
-	//Service_Init();
-
+int r_main(){
+	DDRB |= 1 << PB5;
+	DDRB |= 1 << PB6;
+	DDRB |= 1 << PB4;
+	DDRB |= 1 << PB3;
+	DDRB |= 1 << PB2;
+	
+	PORTB &= 0 << PB5;
+	PORTB &= 0 << PB6;
+	PORTB &= 0 << PB4;
+	PORTB &= 0 << PB3;
+	PORTB &= 0 << PB2;
+	service = Service_Init();
+	Task_Create_System(system_service_subscriber, 0);
+	Task_Create_RR(rr_service_subscriber, 0);
+	Task_Create_RR(rr2, 0);
+	Task_Create_RR(rr3, 0);
+	Task_Create_Periodic(service_publisher, 0, 25, 1, 5);
 	return 0;
 }

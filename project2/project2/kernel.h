@@ -108,7 +108,7 @@ struct td_struct
 	/*PERIODIC tasks need a start time*/
     uint16_t start;
 	/*PERIODIC tasks need to keep track of ticks until next run*/
-	uint16_t ticks;
+	int16_t ticks;
     /** The state of the task in this descriptor. */
     task_state_t                    state;
     /** The argument passed to Task_Create for this task. */

@@ -8,7 +8,7 @@
  * @author Mark Roller
  * @author Curtis St. Pierre
  */
-
+#define USE_AVR2560_GREATER 1
 #define F_CPU 16000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -24,11 +24,18 @@
 /** @brief main function provided by user application. The first task to run. */
 extern int r_main();
 
-#define STACKCONTEXTSIZE (32 + 1 + 1 + 3 + 3)
-#define KERNELARG_STACKOFFSET (32 + 1 + 1 + 1)
+#if USE_AVR2560_GREATER
+	#define STACKCONTEXTSIZE (32 + 1 + 1 + 3 + 3)
+	#define KERNELARG_STACKOFFSET (32 + 1 + 1 + 1)
+#else
+	#define STACKCONTEXTSIZE (32 + 1 + 2 + 2)
+	#define KERNELARG_STACKOFFSET (32 + 1 + 1)
+#endif
 
 /** The task descriptor of the currently RUNNING task. */
 static task_descriptor_t* cur_task = NULL;
+
+static task_descriptor_t* temp_periodic_task = NULL;
 
 /** Since this is a "full-served" model, the kernel is executing using its own stack. */
 static volatile uint16_t kernel_sp;
@@ -62,9 +69,6 @@ static queue_t system_queue;
 
 /** time remaining in current slot */
 static volatile uint8_t ticks_remaining = 0;
-
-/** Indicates if periodic task in this slot has already run this time */
-static uint8_t slot_task_finished = 0;
 
 /** The task descriptor for index "name of task" */
 static task_descriptor_t* name_to_task_ptr[MAXNAME + 1];
@@ -165,29 +169,30 @@ static void kernel_dispatch(void)
     /* If the current state is RUNNING, then select it to run again.
      * kernel_handle_request() has already determined it should be selected.
      */
-
     if(cur_task->state != RUNNING || cur_task == idle_task)
     {
 		if(system_queue.head != NULL)
         {
             cur_task = dequeue(&system_queue);
         }
-        else if(periodic_list.head != NULL)
-        {
-            /* Keep running the current PERIODIC task. */
-			cur_task = NULL;
-            task_descriptor_t* periodic_task = periodic_list.head;
+        else {
+			/* Keep running the current PERIODIC task. */
+			temp_periodic_task = NULL;
+			task_descriptor_t* periodic_task = periodic_list.head;
 			/* look through all periodic tasks for tasks ready to run */
 			while (periodic_task != NULL){
 				if(periodic_task->ticks <= 0){
-					if(cur_task == NULL){
+					if(temp_periodic_task == NULL){
 						/* 
 						* setup periodic task to be current task, change ticks to period,
 						* change ticks_remaining to the worst case execution time of the cur_task.
 						*/
-						cur_task = periodic_task;
-						ticks_remaining = cur_task->wcet;
-						cur_task->ticks += cur_task->period;
+						temp_periodic_task = periodic_task;
+						temp_periodic_task->ticks += temp_periodic_task->period;
+						if(ticks_remaining == 0)
+						{
+							ticks_remaining = temp_periodic_task->wcet;
+						}
 						
 					}
 					else
@@ -199,16 +204,21 @@ static void kernel_dispatch(void)
 						OS_Abort();
 					}
 				}
+				periodic_task = periodic_task->next;
 			}
-        }
-        else if(rr_queue.head != NULL)
-        {
-            cur_task = dequeue(&rr_queue);
-        }
-        else
-        {
-            /* No task available, so idle. */
-            cur_task = idle_task;
+			if (temp_periodic_task != NULL)
+			{
+				cur_task = temp_periodic_task;
+			}
+			else if(rr_queue.head != NULL)
+			{
+				cur_task = dequeue(&rr_queue);
+			}
+			else
+			{
+				/* No task available, so idle. */
+				cur_task = idle_task;
+			}
         }
 
         cur_task->state = RUNNING;
@@ -245,11 +255,10 @@ static void kernel_handle_request(void)
 
     case TASK_CREATE:
         kernel_request_retval = kernel_create_task();
-
         /* Check if new task has higer priority, and that it wasn't an ISR
          * making the request.
          */
-        if(kernel_request_retval)
+        if(kernel_request_retval != NULL)
         {
             /* If new task is SYSTEM and cur is not, then don't run old one */
             if(kernel_request_create_args.level == SYSTEM && cur_task->level != SYSTEM)
@@ -306,24 +315,28 @@ static void kernel_handle_request(void)
         break;
 
     case TASK_NEXT:
-		switch(cur_task->level)
+		if(cur_task->state == RUNNING)
 		{
-	    case SYSTEM:
-	        enqueue(&system_queue, cur_task);
-			break;
-		/* If periodic do nothing (kept to show PERIODIC is considered */
-	    case PERIODIC:
-	        break;
+			switch(cur_task->level)
+			{
+			case SYSTEM:
+				enqueue(&system_queue, cur_task);
+				break;
+			/* If periodic do nothing (kept to show PERIODIC is considered */
+			case PERIODIC:
+				ticks_remaining = 0;
+				break;
 
-	    case RR:
-	        enqueue(&rr_queue, cur_task);
-	        break;
+			case RR:
+				enqueue(&rr_queue, cur_task);
+				break;
 
-	    default: /* idle_task */
-			break;
+			default: /* idle_task */
+				break;
+			}
+
+			cur_task->state = READY;
 		}
-
-		cur_task->state = READY;
         break;
 
     case TASK_GET_ARG:
@@ -353,12 +366,19 @@ static void kernel_handle_request(void)
  * the rest of the registers on the stack. In the locations this macro
  * is used, the interrupts need to be disabled, or they already are disabled.
  */
+#if USE_AVR2560_GREATER
 #define    SAVE_CTX_TOP()       asm volatile (\
-"push   r31             \n\t"\
-"in     r31,0X3C        \n\t"\
-"push   r31             \n\t"\
-"in     r31,__SREG__    \n\t"\
-"cli                    \n\t"::); /* Disable interrupt */
+    "push   r31             \n\t"\
+    "in     r31,0X3C        \n\t"\
+    "push   r31             \n\t"\
+    "in     r31,__SREG__    \n\t"\
+    "cli                    \n\t"::); /* Disable interrupt */
+#else
+#define    SAVE_CTX_TOP()       asm volatile (\
+    "push   r31             \n\t"\
+    "in     r31,__SREG__    \n\t"\
+    "cli                    \n\t"::); /* Disable interrupt */
+#endif
 
 #define STACK_SREG_SET_I_BIT()    asm volatile (\
     "ori    r31, 0x80        \n\t"::);
@@ -402,10 +422,7 @@ static void kernel_handle_request(void)
  */
 #define    SAVE_CTX()    SAVE_CTX_TOP();SAVE_CTX_BOTTOM();
 
-/**
- * @brief Pop all registers and the status register.
- */
-#define    RESTORE_CTX()    asm volatile (\
+#define    RESTORE_CTX_BOTTOM()    asm volatile (\
     "pop    r0                \n\t"\
     "pop    r1                \n\t"\
     "pop    r2                \n\t"\
@@ -436,12 +453,26 @@ static void kernel_handle_request(void)
     "pop    r27             \n\t"\
     "pop    r28             \n\t"\
     "pop    r29             \n\t"\
-    "pop    r30             \n\t"\
+    "pop    r30             \n\t"::);
+
+#if USE_AVR2560_GREATER
+#define    RESTORE_CTX_TOP()    asm volatile (\
     "pop    r31             \n\t"\
     "out    __SREG__, r31   \n\t"\
     "pop    r31             \n\t"\
     "out    0X3C, r31       \n\t"\
     "pop    r31             \n\t"::);
+#else
+#define    RESTORE_CTX_TOP()    asm volatile (\
+    "pop    r31             \n\t"\
+    "out    __SREG__, r31    \n\t"\
+    "pop    r31             \n\t"::);
+#endif
+
+/**
+ * @brief Pop all registers and the status register.
+ */
+#define    RESTORE_CTX()    RESTORE_CTX_BOTTOM();RESTORE_CTX_TOP();
 
 
 /**
@@ -515,7 +546,6 @@ static void enter_kernel(void)
      * The last piece of the context is the SP. Save it to a variable.
      */
     cur_task->sp = (uint8_t*)SP;
-
     /*
      * Now restore the kernel's context, SP first.
      */
@@ -525,7 +555,6 @@ static void enter_kernel(void)
      * Now restore I/O and SREG registers.
      */
     RESTORE_CTX();
-
     /*
      * return explicitly required as we are "naked".
      *
@@ -583,7 +612,6 @@ void TIMER1_COMPA_vect(void)
      * Inform the kernel that this task was interrupted.
      */
     kernel_request = TIMER_EXPIRED;
-
     /*
      * Prepare for next tick interrupt.
      */
@@ -655,7 +683,6 @@ static int kernel_create_task()
         error_msg = ERR_4_PERIODIC_START_BEFORE_ZERO;
         OS_Abort();
     }
-
 	/* idling "task" goes in last descriptor. */
 	if(kernel_request_create_args.level == NULL)
 	{
@@ -705,12 +732,19 @@ static int kernel_create_task()
      * (ret and reti) pop addresses off in BIG ENDIAN (most sig. first, least sig.
      * second), even though the AT90 is LITTLE ENDIAN machine.
      */
-    stack_top[KERNELARG_STACKOFFSET+0] = (uint8_t)(0);
-    stack_top[KERNELARG_STACKOFFSET+1] = (uint8_t)((uint16_t)(kernel_request_create_args.f) >> 8);
-    stack_top[KERNELARG_STACKOFFSET+2] = (uint8_t)(uint16_t)(kernel_request_create_args.f);
-    stack_top[KERNELARG_STACKOFFSET+3] = (uint8_t)(0);
-    stack_top[KERNELARG_STACKOFFSET+4] = (uint8_t)((uint16_t)Task_Terminate >> 8);
-    stack_top[KERNELARG_STACKOFFSET+5] = (uint8_t)(uint16_t)Task_Terminate;
+	#if USE_AVR2560_GREATER
+	stack_top[KERNELARG_STACKOFFSET+0] = (uint8_t)(0);
+	stack_top[KERNELARG_STACKOFFSET+1] = (uint8_t)((uint16_t)(kernel_request_create_args.f) >> 8);
+	stack_top[KERNELARG_STACKOFFSET+2] = (uint8_t)(uint16_t)(kernel_request_create_args.f);
+	stack_top[KERNELARG_STACKOFFSET+3] = (uint8_t)(0);
+	stack_top[KERNELARG_STACKOFFSET+4] = (uint8_t)((uint16_t)Task_Terminate >> 8);
+	stack_top[KERNELARG_STACKOFFSET+5] = (uint8_t)(uint16_t)Task_Terminate;
+	#else
+	stack_top[KERNELARG_STACKOFFSET+0] = (uint8_t)((uint16_t)(kernel_request_create_args.f) >> 8);
+	stack_top[KERNELARG_STACKOFFSET+1] = (uint8_t)(uint16_t)(kernel_request_create_args.f);
+	stack_top[KERNELARG_STACKOFFSET+2] = (uint8_t)((uint16_t)Task_Terminate >> 8);
+	stack_top[KERNELARG_STACKOFFSET+3] = (uint8_t)(uint16_t)Task_Terminate;
+	#endif
 
     /*
      * Make stack pointer point to cell above stack (the top).
@@ -926,31 +960,30 @@ static void kernel_update_ticker(void)
 		* round robin should not be an issue since they never get preference
 		* over periodic taks
 		*/
-		if(cur_task->level == PERIODIC){
+		if(cur_task->level != SYSTEM){
 			--ticks_remaining;
 		}
 
         if(ticks_remaining == 0)
         {
             /* If Periodic task still running then error */
-            if(cur_task != NULL && cur_task->level == PERIODIC && slot_task_finished == 0)
+            if(cur_task != NULL && cur_task->level == PERIODIC)
             {
                 /* error handling */
                 error_msg = ERR_RUN_3_PERIODIC_TOOK_TOO_LONG;
                 OS_Abort();
             }
-			/*
-			* loop through all periodic tasks and lower their ticks
-			* ticks keep track of when the task must run next
-			*/
-			task_descriptor_t* periodic_task = periodic_list.head;
-			while(periodic_task != NULL)
-			{
-				periodic_task->ticks--;
-				periodic_task = periodic_task->next;
-			}
-			
         }
+		/*
+		* loop through all periodic tasks and lower their ticks
+		* ticks keep track of when the task must run next
+		*/
+		task_descriptor_t* periodic_task = periodic_list.head;
+		while(periodic_task != NULL)
+		{
+			periodic_task->ticks--;
+			periodic_task = periodic_task->next;
+		}
     }
 }
 
@@ -1069,7 +1102,7 @@ void OS_Abort(void)
 
     for(;;)
     {
-        PORTB = (uint8_t)(LED_RED_MASK | LED_GREEN_MASK);
+        //PORTB = (uint8_t)(LED_RED_MASK | LED_GREEN_MASK);
 
         for(i = 0; i < 100; ++i)
         {
@@ -1086,8 +1119,7 @@ void OS_Abort(void)
 
         for(j = 0; j < flashes; ++j)
         {
-            PORTB = mask;
-
+            PORTB |= mask;
             for(i = 0; i < 10; ++i)
             {
                 _delay_25ms();
@@ -1208,7 +1240,7 @@ void Service_Publish( SERVICE *s, int16_t v ) {
 //}
 
 /************************************************************************/
-/* Periodic                                                                     */
+/* Periodic                                                             */
 /************************************************************************/
 int8_t Task_Create_Periodic(void(*f)(void), int16_t arg, uint16_t period, uint16_t wcet, uint16_t start)
 {
