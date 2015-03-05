@@ -1157,7 +1157,6 @@ void Service_Publish( SERVICE *s, int16_t v ) {
             if(sub->level == RR) {
                 enqueue_head(&rr_queue, sub);
             } else if(sub->level == SYSTEM) {
-                // TODO: add interupt if task is a system task and current task is not
                 enqueue_head(&system_queue, sub);
             } else {
                 error_msg = ERR_RUN_8_SUBSCRIBE_PERIODIC_FOUND;
