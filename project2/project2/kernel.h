@@ -116,7 +116,11 @@ struct td_struct
     int                             arg;
     /** The priority (type) of this task. */
     uint8_t                         level;
-    /** A link to the previous task descriptor in the queue holding this task. */
+    /** 
+	 * A link to the previous task descriptor in the queue holding this task.
+	 * This is necessary for removing a periodic task from anywhere in the list without
+	 * causing issues with the list
+	 */
     task_descriptor_t*              previous;
     /** A link to the next task descriptor in the queue holding this task. */
     task_descriptor_t*              next;
