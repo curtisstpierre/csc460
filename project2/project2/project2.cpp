@@ -116,13 +116,72 @@ void periodic3(){
 	}
 }
 
-/*toggle PIN 52*/
+/* toggle PIN 52 should kill OS */
 void periodic3_no_task_next(){
 	for(;;) {
 		PORTB |= 1 << PB3;
 		_delay_ms(5);
 		PORTB ^= 1 << PB3;
 	}
+}
+
+int test_subscribe(){
+	service = Service_Init();
+	Task_Create_System(system_service_subscriber, 0);
+	Task_Create_RR(rr_service_subscriber, 0);
+	Task_Create_RR(rr2, 0);
+	Task_Create_RR(rr3, 0);
+	Task_Create_Periodic(service_publisher, 0, 25, 1, 5);
+	return 0;
+}
+
+int test1_period(){
+	Task_Create_Periodic(periodic2, 0, 5, 2, 0);
+	Task_Create_RR(rr1, 0);
+	Task_Create_RR(rr2, 0);
+	Task_Create_RR(rr3, 0);
+	return 0;
+}
+
+int test2_multiple_period(){
+	Task_Create_Periodic(periodic2, 0, 5, 2, 0);
+	Task_Create_Periodic(periodic3, 0, 5, 2, 3);
+	Task_Create_RR(rr1, 0);
+	Task_Create_RR(rr2, 0);
+	Task_Create_RR(rr3, 0);
+	return 0;
+}
+
+/* should fail PB6 (pin 12) error 6 pulses: task collision */
+int test3_multiple_period_fail(){
+	Task_Create_Periodic(periodic2, 0, 5, 2, 0);
+	Task_Create_Periodic(periodic3, 0, 5, 2, 10);
+	Task_Create_RR(rr1, 0);
+	Task_Create_RR(rr2, 0);
+	Task_Create_RR(rr3, 0);
+	return 0;
+}
+
+/* should fail PB5 (pin 11) error 3 pulses: periodic took too long */
+int test4_period_miss_fail(){
+	Task_Create_Periodic(periodic3_no_task_next, 0, 5, 2, 10);
+	Task_Create_RR(rr1, 0);
+	Task_Create_RR(rr2, 0);
+	Task_Create_RR(rr3, 0);
+	return 0;
+}
+
+/* should fail PB5 (pin 11) error 2 pulses: too many tasks*/
+int test5_too_many_tasks_fail(){
+	Task_Create_Periodic(periodic3_no_task_next, 0, 5, 2, 10);
+	Task_Create_RR(rr1, 0);
+	Task_Create_RR(rr2, 0);
+	Task_Create_RR(rr3, 0);
+	Task_Create_Periodic(periodic3_no_task_next, 0, 5, 2, 7);
+	Task_Create_RR(rr1, 0);
+	Task_Create_RR(rr2, 0);
+	Task_Create_RR(rr3, 0);
+	return 0;
 }
 
 int r_main(){
@@ -142,64 +201,5 @@ int r_main(){
 	PORTB &= 0 << PB2;
 	PORTB &= 0 << PB1;
 	PORTB &= 0 << PB0;
-	return 0;
-}
-
-int test_subscribe(){
-	service = Service_Init();
-	Task_Create_System(system_service_subscriber, 0);
-	Task_Create_RR(rr_service_subscriber, 0);
-	Task_Create_RR(rr2, 0);
-	Task_Create_RR(rr3, 0);
-	Task_Create_Periodic(service_publisher, 0, 25, 1, 5);
-	return 0;
-}
-
-int test_period(){
-	Task_Create_Periodic(periodic2, 0, 5, 2, 0);
-	Task_Create_RR(rr1, 0);
-	Task_Create_RR(rr2, 0);
-	Task_Create_RR(rr3, 0);
-	return 0;
-}
-
-int test_multiple_period(){
-	Task_Create_Periodic(periodic2, 0, 5, 2, 0);
-	Task_Create_Periodic(periodic3, 0, 5, 2, 3);
-	Task_Create_RR(rr1, 0);
-	Task_Create_RR(rr2, 0);
-	Task_Create_RR(rr3, 0);
-	return 0;
-}
-
-/* should fail PB6 (pin 12) error 6 pulses: task collision */
-int test_multiple_period_fail(){
-	Task_Create_Periodic(periodic2, 0, 5, 2, 0);
-	Task_Create_Periodic(periodic3, 0, 5, 2, 10);
-	Task_Create_RR(rr1, 0);
-	Task_Create_RR(rr2, 0);
-	Task_Create_RR(rr3, 0);
-	return 0;
-}
-
-/* should fail PB5 (pin 11) error 3 pulses: periodic took too long */
-int test_period_miss_fail(){
-	Task_Create_Periodic(periodic3_no_task_next, 0, 5, 2, 10);
-	Task_Create_RR(rr1, 0);
-	Task_Create_RR(rr2, 0);
-	Task_Create_RR(rr3, 0);
-	return 0;
-}
-
-/* should fail PB5 (pin 11) error 2 pulses: too many tasks*/
-int test_too_many_tasks_fail(){
-	Task_Create_Periodic(periodic3_no_task_next, 0, 5, 2, 10);
-	Task_Create_RR(rr1, 0);
-	Task_Create_RR(rr2, 0);
-	Task_Create_RR(rr3, 0);
-	Task_Create_Periodic(periodic3_no_task_next, 0, 5, 2, 7);
-	Task_Create_RR(rr1, 0);
-	Task_Create_RR(rr2, 0);
-	Task_Create_RR(rr3, 0);
 	return 0;
 }
