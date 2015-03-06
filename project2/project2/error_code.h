@@ -5,10 +5,10 @@
  *        Green errors are initialization errors
  *        Red errors are runt time errors
  *
- * CSC 460/560 Real Time Operating Systems - Mantis Cheng
+ * CSC 460 Real Time Operating Systems - Mantis Cheng
  *
- * @author Scott Craig
- * @author Justin Tanner
+ * @author Mark Roller
+ * @author Curtis St. Pierre
  */
 #ifndef __ERROR_CODE_H__
 #define __ERROR_CODE_H__
@@ -39,7 +39,7 @@ ERR_6_PERIODIC_TASK_COLLISION,
 /** RED ERRORS -- Run time errors. */
 
 /** User called OS_Abort() */
-ERR_RUN_1_USER_CALLED_OS_ABORT,
+ERR_RUN_1_USER_CALLED_OS_ABORT, 
 
 /** Too many tasks created. Only allowed MAXPROCESS at any time.*/
 ERR_RUN_2_TOO_MANY_TASKS,

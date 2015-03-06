@@ -1,8 +1,8 @@
 /*
  * BlockingUART.h
  *
- *  Created on: Jun 23, 2013
- *      Author: andpol
+ *  Created: Jun 23, 2013
+ *  Author: andpol
  */
 
 #ifndef BLOCKINGUART_H_
