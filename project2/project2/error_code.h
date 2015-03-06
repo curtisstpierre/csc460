@@ -39,7 +39,7 @@ ERR_6_PERIODIC_TASK_COLLISION,
 /** RED ERRORS -- Run time errors. */
 
 /** User called OS_Abort() */
-ERR_RUN_1_USER_CALLED_OS_ABORT,
+ERR_RUN_1_USER_CALLED_OS_ABORT, 
 
 /** Too many tasks created. Only allowed MAXPROCESS at any time.*/
 ERR_RUN_2_TOO_MANY_TASKS,
