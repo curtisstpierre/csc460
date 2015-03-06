@@ -161,7 +161,7 @@ void service_publisher_rr(){
 
 /* Uses: Test15 */
 void service_publisher_values(){
-	uint16_t count = 0;
+	int16_t count = 0;
 
 	for(;;) {
 		PORTB |= 1 << PB3;
@@ -199,7 +199,7 @@ void system_subscriber2(){
 
 /* Uses: Test15 */
 void system_subscriber_values(){
-	uint16_t count;
+	int16_t count;
 
 	for(;;) {
 		Service_Subscribe(service1, &system_value);
