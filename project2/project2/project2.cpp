@@ -6,15 +6,15 @@
  *
  */
 
+#define F_CPU 16000000UL
 #include "os.h"
 #include "BlockingUART.h"
 #include <util/delay.h>
 #include <avr/io.h>
 #include <stdbool.h>
 
-#define F_CPU 16000000UL
-
-SERVICE* service;
+SERVICE* service1;
+SERVICE* service2;
 
 int16_t system_value;
 int16_t rr_value;
@@ -119,6 +119,18 @@ void rr_now(){
         }
     }
  }
+
+ /* Uses: Test13 */
+ void rr_arg(){
+ 	int16_t wait = Task_GetArg();
+    int16_t count;
+
+    PORTB |= 1 << PB0;
+    for(count=0; count<wait; count++) {
+        _delay_ms(1);
+    }
+    PORTB ^= 1 << PB0;
+ }
         
 /***************************
  * * * * * * * * * * * * * *
@@ -126,23 +138,75 @@ void rr_now(){
  * * * * * * * * * * * * * *
  ***************************/
 
-/* Uses: Test09 */
+/* Uses: Test09, Test14 */
 void service_publisher(){
 	for(;;) {
 		PORTB |= 1 << PB3;
-		Service_Publish(service, 255);
+		Service_Publish(service1, 255);
 		_delay_ms(5);
 		PORTB ^= 1 << PB3;
 		Task_Next();
 	}
 }
 
-/* Uses: Test09 */
-void system_subscriber(){
+/* Uses: Test14 */
+void service_publisher_rr(){
 	for(;;) {
-		Service_Subscribe(service, &system_value);
+		PORTB |= 1 << PB4;
+		Service_Publish(service2, 255);
+		_delay_ms(5);
+		PORTB ^= 1 << PB4;
+	}
+}
+
+/* Uses: Test15 */
+void service_publisher_values(){
+	int16_t count = 0;
+
+	for(;;) {
+		PORTB |= 1 << PB3;
+		Service_Publish(service1, count);
+		_delay_ms(5);
+		PORTB ^= 1 << PB3;
+
+		count++;
+		if(count > 5){
+			count = 0;
+		}
+		Task_Next();
+	}
+}
+
+/* Uses: Test09, Test14 */
+void system_subscriber1(){
+	for(;;) {
+		Service_Subscribe(service1, &system_value);
 		PORTB |= 1 << PB2;
 		_delay_ms(5);
+		PORTB ^= 1 << PB2;
+	}
+}
+
+/* Uses: Test14 */
+void system_subscriber2(){
+	for(;;) {
+		Service_Subscribe(service2, &system_value);
+		PORTB |= 1 << PB1;
+		_delay_ms(5);
+		PORTB ^= 1 << PB1;
+	}
+}
+
+/* Uses: Test15 */
+void system_subscriber_values(){
+	int16_t count;
+
+	for(;;) {
+		Service_Subscribe(service1, &system_value);
+		PORTB |= 1 << PB2;
+		for(count=0;count<system_value;count++){
+			_delay_ms(1);
+		}
 		PORTB ^= 1 << PB2;
 	}
 }
@@ -150,7 +214,7 @@ void system_subscriber(){
 /* Uses: Test09 */
 void rr_subscriber(){
 	for(;;) {
-		Service_Subscribe(service, &rr_value);
+		Service_Subscribe(service1, &rr_value);
 		PORTB |= 1 << PB1;
 		_delay_ms(1);
 		PORTB ^= 1 << PB1;
@@ -160,7 +224,7 @@ void rr_subscriber(){
 /* Uses: Test11 */
 void periodic_subscriber(){
 	for(;;) {
-		Service_Subscribe(service, &periodic_value);
+		Service_Subscribe(service1, &periodic_value);
 		PORTB |= 1 << PB0;
 		_delay_ms(1);
 		PORTB ^= 1 << PB0;
@@ -274,9 +338,9 @@ void test08_now(){
  * task shows that the subscribers are triggered after it is.
  */
 void test09_service(){
-	service = Service_Init();
+	service1 = Service_Init();
 
-	Task_Create_System(system_subscriber, 0);
+	Task_Create_System(system_subscriber1, 0);
     Task_Create_RR(rr_subscriber, 0);
     Task_Create_RR(rr1, 0);
     Task_Create_Periodic(service_publisher, 0, 5, 1, 5);
@@ -288,11 +352,11 @@ void test09_service(){
  * ERR_RUN_6_INIT_SERVICE_MAX_ERROR
  */
 void test10_too_many_services_error(){
-	service = Service_Init();
-	service = Service_Init();
-	service = Service_Init();
-	service = Service_Init();
-	service = Service_Init();
+	service1 = Service_Init();
+	service1 = Service_Init();
+	service1 = Service_Init();
+	service1 = Service_Init();
+	service1 = Service_Init();
 }
 
 /*
@@ -301,9 +365,48 @@ void test10_too_many_services_error(){
  * ERR_RUN_7_SUBSCRIBE_PERIODIC
  */
 void test11_subscribe_periodic_error(){
-	service = Service_Init();
+	service1 = Service_Init();
 
     Task_Create_Periodic(periodic_subscriber, 0, 5, 1, 5);
+}
+
+/*
+ * This test should throw an error regarding calling OS_Abort().
+ * ERR_RUN_1_USER_CALLED_OS_ABORT
+ */
+void test12_user_called_abort_error(){
+	OS_Abort();
+}
+
+/*
+ * This test demonstrates that a argument can be used to delay a round 
+ * robin by the number of milliseconds specified.
+ */
+void test13_arguments(){
+	Task_Create_RR(rr_arg, 4);
+}
+
+/*
+ * This tests that multiple services can run at the same time.
+ */
+void test14_multiple_services(){
+	service1 = Service_Init();
+	service2 = Service_Init();
+
+	Task_Create_System(system_subscriber1, 0);
+	Task_Create_System(system_subscriber2, 0);
+    Task_Create_Periodic(service_publisher, 0, 5, 1, 5);
+    Task_Create_RR(service_publisher_rr, 0);
+}
+
+/*
+ * This tests that the services value passing works.
+ */
+void test15_services_values(){
+	service1 = Service_Init();
+
+	Task_Create_System(system_subscriber_values, 0);
+    Task_Create_Periodic(service_publisher_values, 0, 5, 1, 5);
 }
 
 /***************************
@@ -325,6 +428,10 @@ int r_main(){
 	//test09_service();
 	//test10_too_many_services_error();
 	//test11_subscribe_periodic_error();
+	//test12_user_called_abort_error();
+	//test13_arguments();
+	//test14_multiple_services();
+	//test15_services_values();
 
 	return 0;
 }
