@@ -720,19 +720,13 @@ static int kernel_create_task()
      * (ret and reti) pop addresses off in BIG ENDIAN (most sig. first, least sig.
      * second), even though the AT90 is LITTLE ENDIAN machine.
      */
-	#if USE_ATMEGA2560
+
 	stack_top[KERNELARG_STACKOFFSET+0] = (uint8_t)(0);
 	stack_top[KERNELARG_STACKOFFSET+1] = (uint8_t)((uint16_t)(kernel_request_create_args.f) >> 8);
 	stack_top[KERNELARG_STACKOFFSET+2] = (uint8_t)(uint16_t)(kernel_request_create_args.f);
 	stack_top[KERNELARG_STACKOFFSET+3] = (uint8_t)(0);
 	stack_top[KERNELARG_STACKOFFSET+4] = (uint8_t)((uint16_t)Task_Terminate >> 8);
 	stack_top[KERNELARG_STACKOFFSET+5] = (uint8_t)(uint16_t)Task_Terminate;
-	#else
-	stack_top[KERNELARG_STACKOFFSET+0] = (uint8_t)((uint16_t)(kernel_request_create_args.f) >> 8);
-	stack_top[KERNELARG_STACKOFFSET+1] = (uint8_t)(uint16_t)(kernel_request_create_args.f);
-	stack_top[KERNELARG_STACKOFFSET+2] = (uint8_t)((uint16_t)Task_Terminate >> 8);
-	stack_top[KERNELARG_STACKOFFSET+3] = (uint8_t)(uint16_t)Task_Terminate;
-	#endif
 
     /*
      * Make stack pointer point to cell above stack (the top).
