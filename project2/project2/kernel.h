@@ -87,7 +87,7 @@ typedef struct
     /*PERIODIC tasks need a worst case run time. */
     uint16_t wcet;
     /*PERIODIC tasks need a start time*/
-    uint16_t start;
+    int16_t start;
 }
 create_args_t;
 
@@ -107,7 +107,7 @@ struct td_struct
 	/*PERIODIC tasks need a worst case run time. */
     uint16_t wcet;
 	/*PERIODIC tasks need a start time*/
-    uint16_t start;
+    int16_t start;
 	/*PERIODIC tasks need to keep track of ticks until next run*/
 	int16_t ticks;
     /** The state of the task in this descriptor. */

@@ -309,7 +309,7 @@ static void kernel_dispatch(void)
                         /*
                         * if more than one periodic task is ready abort!
                         */
-                        error_msg = ERR_6_PERIODIC_TASK_COLLISION;
+                        error_msg = ERR_5_PERIODIC_TASK_COLLISION;
                         OS_Abort();
                     }
                 }
@@ -414,6 +414,10 @@ static void kernel_handle_request(void)
                 enqueue(&rr_queue, cur_task);
             }
         }
+		else {
+			error_msg = ERR_RUN_2_TOO_MANY_TASKS;
+			OS_Abort();
+		}
         break;
 
     case TASK_TERMINATE:
@@ -655,20 +659,20 @@ static int kernel_create_task()
 	/* if the periodic task's wcet is greater than its period abort */
     if(kernel_request_create_args.level == PERIODIC && kernel_request_create_args.wcet > kernel_request_create_args.period)
     {
-        error_msg = ERR_2_PERIOD_LT_WCET;
+        error_msg = ERR_1_PERIOD_LT_WCET;
         OS_Abort();
     }
 	/* if the periodic task's period is less than 1 abort */
     if(kernel_request_create_args.level == PERIODIC && kernel_request_create_args.period < 1)
     {
-        error_msg = ERR_5_PERIODIC_PERIOD_LT_ONE;
+        error_msg = ERR_4_PERIODIC_PERIOD_LT_ONE;
         OS_Abort();
     }
 	/* if the periodic task's start time is lower than zero bad things will happen so abort*/
     if(kernel_request_create_args.level == PERIODIC && kernel_request_create_args.start < 0)
     {
         /* PERIODIC name already used */
-        error_msg = ERR_4_PERIODIC_START_BEFORE_ZERO;
+        error_msg = ERR_3_PERIODIC_START_BEFORE_ZERO;
         OS_Abort();
     }
 	/* idling "task" goes in last descriptor. */
@@ -1194,7 +1198,6 @@ void Service_Publish( SERVICE *s, int16_t v ) {
             if(sub->level == RR) {
                 enqueue_head(&rr_queue, sub);
             } else if(sub->level == SYSTEM) {
-                // TODO: add interupt if task is a system task and current task is not
                 enqueue_head(&system_queue, sub);
             } else {
                 error_msg = ERR_RUN_8_SUBSCRIBE_PERIODIC_FOUND;

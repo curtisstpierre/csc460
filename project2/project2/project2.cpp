@@ -115,7 +115,7 @@ void rr_now(){
 		if(Now()%5 == 0) {
             PORTB |= 1 << PB0;
         } else {
-            PORTB ^= 1 << PB0;
+            PORTB &= 0 << PB0;
         }
     }
  }
@@ -124,12 +124,13 @@ void rr_now(){
  void rr_arg(){
  	int16_t wait = Task_GetArg();
     int16_t count;
-
-    PORTB |= 1 << PB0;
-    for(count=0; count<wait; count++) {
-        _delay_ms(1);
-    }
-    PORTB ^= 1 << PB0;
+	for(;;) {
+		PORTB |= 1 << PB0;
+		for(count=0; count<wait; count++) {
+			_delay_ms(1);
+		}
+		PORTB ^= 1 << PB0;
+	}
  }
         
 /***************************
@@ -291,7 +292,7 @@ void test04_multiple_periodic(){
 
 /* 
  * This test should fail due to task collision
- * ERR_6_PERIODIC_TASK_COLLISION: (pin 12) shows 6 pulses
+ * ERR_5_PERIODIC_TASK_COLLISION: (pin 12) shows 5 pulses
  */
 void test05_multiple_periodic_collision_error(){
 	Task_Create_Periodic(periodic1, 0, 5, 2, 0);
@@ -409,6 +410,27 @@ void test15_services_values(){
     Task_Create_Periodic(service_publisher_values, 0, 5, 1, 5);
 }
 
+/* 
+ * test  ERR_1_PERIOD_LT_WCET: (pin 12) shows 1 pulses
+ */
+void test16_period_lt_wcet(){
+	Task_Create_Periodic(periodic1, 0, 5, 7, 10);
+}
+
+/*
+ * test  ERR_4_PERIODIC_PERIOD_LT_ONE: (pin 12) shows 4 pulses
+ */
+void test17_period_lt_one(){
+	Task_Create_Periodic(periodic1, 0, 0, 0, 10);
+}
+
+/* 
+ * test  ERR_3_PERIODIC_START_BEFORE_ZERO: (pin 12) shows 3 pulses
+ */
+void test18_periodic_start_before_zero(){
+	Task_Create_Periodic(periodic1, 0, 5, 2, -1);
+}
+
 /***************************
  * * * * * * * * * * * * * *
  *      Main Function      *
@@ -417,12 +439,12 @@ void test15_services_values(){
 
 int r_main(){
 	setup();
-	//test01_system();
-	//test02_rr();
-	//test03_periodic();
-	//test04_multiple_periodic();
-	//test05_multiple_periodic_collision_error();
-	//test06_periodic_too_long_error();
+	//test01_system(); //creates a system task in a periodic task
+	//test02_rr(); //creates a round robin task
+	//test03_periodic(); //creates a periodic with round robins
+	//test04_multiple_periodic(); // creates multiple periodic tasks and round robins
+	//test05_multiple_periodic_collision_error(); //test periodic collision
+	//test06_periodic_too_long_error(); //test periodic without TaskNext() fails
 	//test07_too_many_tasks_error();
 	//test08_now();
 	//test09_service();
@@ -432,6 +454,8 @@ int r_main(){
 	//test13_arguments();
 	//test14_multiple_services();
 	//test15_services_values();
-
+	//test16_period_lt_wcet();
+	//test17_period_lt_one();
+	//test18_periodic_start_before_zero();
 	return 0;
 }
