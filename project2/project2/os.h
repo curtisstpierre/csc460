@@ -271,7 +271,6 @@ void OS_Abort();
    *
    * \sa \ref policy
    */
-int Task_Create(void(*f)(void), int arg, unsigned int level, unsigned int name);
 int8_t   Task_Create_System(void (*f)(void), int16_t arg);
 int8_t   Task_Create_RR(    void (*f)(void), int16_t arg);
 

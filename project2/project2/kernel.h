@@ -3,11 +3,12 @@
  *
  * @brief kernel data structures used in os.c.
  *
- * CSC 460/560 Real Time Operating Systems - Mantis Cheng
+ * CSC 460 Real Time Operating Systems - Mantis Cheng
  *
- * @author Scott Craig
- * @author Justin Tanner
+ * @author Mark Roller
+ * @author Curtis St. Pierre
  */
+ 
 #ifndef __KERNEL_H__
 #define __KERNEL_H__
 

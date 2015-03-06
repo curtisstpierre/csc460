@@ -1,8 +1,8 @@
 /*
  * c_buffer.h
  *
- *  Created on: May 28, 2013
- *      Author: andpol
+ *  Created: May 28, 2013
+ *  Author: andpol
  */
 
 #ifndef C_BUFFER_H_

@@ -1,21 +1,31 @@
 /*
- * main.c
+ *  project2.cpp
  *
- *  Created on: March, 2014
- *      Author: Mark and Curtis
+ *  Created: March, 2015
+ *  Author: Mark Roller and Curtis St. Pierre
  *
  */
+
 #define F_CPU 16000000UL
 #include "os.h"
 #include "BlockingUART.h"
-
 #include <util/delay.h>
 #include <avr/io.h>
 #include <stdbool.h>
 
 SERVICE* service;
 
-void system() {
+int16_t system_value;
+int16_t rr_value;
+
+
+/***************************
+ * * * * * * * * * * * * * *
+ *     Task Functions      *
+ * * * * * * * * * * * * * *
+ ***************************/
+
+void system1() {
 	PORTB |= 1 << PB2;
 	_delay_ms(5);
 	PORTB ^= 1 << PB2;
@@ -42,8 +52,21 @@ void periodic2(){
 	}
 }
 
-int16_t system_value;
-int16_t rr_value;
+void rr1(){
+	for(;;) {
+		PORTB |= 1 << PB5;
+		_delay_ms(1);
+		PORTB ^= 1 << PB5;
+	}
+}
+
+void rr2(){
+	for(;;) {
+		PORTB |= 1 << PB4;
+		_delay_ms(1);
+		PORTB ^= 1 << PB4;
+	}
+}
 
 void service_publisher(){
 	for(;;) {
@@ -73,39 +96,28 @@ void rr_service_subscriber(){
 	}
 }
 
-void rr2(){
-	for(;;) {
-		PORTB |= 1 << PB5;
-		_delay_ms(1);
-		PORTB ^= 1 << PB5;
-	}
-}
 
-void rr3(){
-	for(;;) {
-		PORTB |= 1 << PB4;
-		_delay_ms(1);
-		PORTB ^= 1 << PB4;
-	}
-}
+/***************************
+ * * * * * * * * * * * * * *
+ *     Test Functions      *
+ * * * * * * * * * * * * * *
+ ***************************/
 
-int r_main(){
+void setup(){
 	DDRB |= 1 << PB5;
 	DDRB |= 1 << PB6;
 	DDRB |= 1 << PB4;
 	DDRB |= 1 << PB3;
 	DDRB |= 1 << PB2;
+}
+
+void test001_Now(){
+
+}
+
+int r_main(){
+	setup();
+	test001_Now();
 	
-	PORTB &= 0 << PB5;
-	PORTB &= 0 << PB6;
-	PORTB &= 0 << PB4;
-	PORTB &= 0 << PB3;
-	PORTB &= 0 << PB2;
-	service = Service_Init();
-	Task_Create_System(system_service_subscriber, 0);
-	Task_Create_RR(rr_service_subscriber, 0);
-	Task_Create_RR(rr2, 0);
-	Task_Create_RR(rr3, 0);
-	Task_Create_Periodic(service_publisher, 0, 25, 1, 5);
 	return 0;
 }
