@@ -6,13 +6,12 @@
  *
  */
 
+#define F_CPU 16000000UL
 #include "os.h"
 #include "BlockingUART.h"
 #include <util/delay.h>
 #include <avr/io.h>
 #include <stdbool.h>
-
-#define F_CPU 16000000UL
 
 SERVICE* service1;
 SERVICE* service2;
@@ -200,10 +199,14 @@ void system_subscriber2(){
 
 /* Uses: Test15 */
 void system_subscriber_values(){
+	uint16_t count;
+
 	for(;;) {
 		Service_Subscribe(service1, &system_value);
 		PORTB |= 1 << PB2;
-		_delay_ms(system_value);
+		for(count=0;count<system_value;count++){
+			_delay_ms(1);
+		}
 		PORTB ^= 1 << PB2;
 	}
 }
@@ -335,9 +338,9 @@ void test08_now(){
  * task shows that the subscribers are triggered after it is.
  */
 void test09_service(){
-	service = Service_Init();
+	service1 = Service_Init();
 
-	Task_Create_System(system_subscriber, 0);
+	Task_Create_System(system_subscriber1, 0);
     Task_Create_RR(rr_subscriber, 0);
     Task_Create_RR(rr1, 0);
     Task_Create_Periodic(service_publisher, 0, 5, 1, 5);
@@ -349,11 +352,11 @@ void test09_service(){
  * ERR_RUN_6_INIT_SERVICE_MAX_ERROR
  */
 void test10_too_many_services_error(){
-	service = Service_Init();
-	service = Service_Init();
-	service = Service_Init();
-	service = Service_Init();
-	service = Service_Init();
+	service1 = Service_Init();
+	service1 = Service_Init();
+	service1 = Service_Init();
+	service1 = Service_Init();
+	service1 = Service_Init();
 }
 
 /*
@@ -362,7 +365,7 @@ void test10_too_many_services_error(){
  * ERR_RUN_7_SUBSCRIBE_PERIODIC
  */
 void test11_subscribe_periodic_error(){
-	service = Service_Init();
+	service1 = Service_Init();
 
     Task_Create_Periodic(periodic_subscriber, 0, 5, 1, 5);
 }

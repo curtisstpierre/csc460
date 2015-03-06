@@ -9,6 +9,7 @@
  * @author Curtis St. Pierre
  */
 
+#define F_CPU 16000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -17,7 +18,6 @@
 #include "kernel.h"
 #include "error_code.h"
 
-#define F_CPU 16000000UL
 /** @brief main function provided by user application. The first task to run. */
 extern int r_main();
 
