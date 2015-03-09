@@ -12,6 +12,7 @@
 #include <util/delay.h>
 #include <avr/io.h>
 #include <stdbool.h>
+#include <avr/interrupt.h>
 
 SERVICE* service1;
 SERVICE* service2;
@@ -232,6 +233,14 @@ void periodic_subscriber(){
 	}
 }
 
+ISR(TIMER3_COMPA_vect){
+    PORTB |= 1 << PB3;
+	Service_Publish(service1, 0);
+	_delay_ms(5);
+	PORTB ^= 1 << PB3;
+
+	Task_Next();
+}
 
 /***************************
  * * * * * * * * * * * * * *
@@ -431,6 +440,38 @@ void test18_periodic_start_before_zero(){
 	Task_Create_Periodic(periodic1, 0, 5, 2, -1);
 }
 
+/* 
+ * This test makes sure you can succesfully publish a service from an interrupt
+ * The service should be published every 2 seconds
+ */
+void test19_ISR_publish(){
+    service1 = Service_Init(); 
+
+    //Clear config
+    TCCR3A = 0;
+    TCCR3B = 0;
+
+    //Set CTC 4
+    TCCR3B |= (1 << WGM32); 
+
+    //Set prescaler to 1
+    TCCR3B |= (1<<CS30); 
+    
+    //Set value (2 seconds)
+    OCR3A = 32000000; 
+
+    //Enable interrupt
+    TIMSK3 |= (1<<OCIE3A); 
+
+    //Set timer to 0
+    TCNT3=0;               
+
+
+    Task_Create_System(system_subscriber1, 0);
+    Task_Create_RR(rr_subscriber, 0);
+    Task_Create_RR(rr1, 0);
+}
+
 /***************************
  * * * * * * * * * * * * * *
  *      Main Function      *
@@ -457,5 +498,7 @@ int r_main(){
 	//test16_period_lt_wcet();
 	//test17_period_lt_one();
 	//test18_periodic_start_before_zero();
+	//test19_ISR_publish();
+
 	return 0;
 }
