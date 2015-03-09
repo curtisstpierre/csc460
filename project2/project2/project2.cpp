@@ -454,11 +454,11 @@ void test19_ISR_publish(){
     //Set CTC 4
     TCCR3B |= (1 << WGM32); 
 
-    //Set prescaler to 1
-    TCCR3B |= (1<<CS30); 
+    //Set prescaler to 256
+    TCCR3B |= (1<<CS32); 
     
-    //Set value (0.05 seconds)
-    OCR3A = 8000; 
+    //Set value (0.25 seconds)
+    OCR3A = 0x22FF; 
 
     //Enable interrupt
     TIMSK3 |= (1<<OCIE3A); 
