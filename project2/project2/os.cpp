@@ -457,7 +457,7 @@ static void kernel_handle_request(void)
         if(cur_task->state == RUNNING){
             if(cur_task->level == RR) {
                 cur_task->state = READY;
-                push_queue(&rr_queue, cur_task);
+                enqueue_head(&rr_queue, cur_task);
             }
             if(cur_task->level == PERIODIC) {
                 cur_task->state = READY;

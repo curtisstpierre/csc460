@@ -457,8 +457,8 @@ void test19_ISR_publish(){
     //Set prescaler to 1
     TCCR3B |= (1<<CS30); 
     
-    //Set value (2 seconds)
-    OCR3A = 32000000; 
+    //Set value (0.05 seconds)
+    OCR3A = 8000; 
 
     //Enable interrupt
     TIMSK3 |= (1<<OCIE3A); 
