@@ -86,6 +86,7 @@ static uint16_t curr_service = 0;
 static void kernel_main_loop(void);
 static void kernel_dispatch(void);
 static void kernel_handle_request(void);
+static void kernel_interrupt_task(void);
 
 /* context switching */
 static void exit_kernel(void) __attribute((noinline, naked));
@@ -452,6 +453,20 @@ static void kernel_handle_request(void)
         }
         break;
 
+    case TASK_INTERRUPT:
+        if(cur_task->state == RUNNING){
+            if(cur_task->level == RR) {
+                cur_task->state = READY;
+                enqueue_head(&rr_queue, cur_task);
+            }
+            if(cur_task->level == PERIODIC) {
+                cur_task->state = READY;
+                cur_task->ticks -= cur_task->period;
+                ticks_remaining++;
+            }
+        }
+        break;
+
     case TASK_GET_ARG:
         /* Should not happen. Handled in task itself. */
         break;
@@ -554,6 +569,23 @@ static void enter_kernel(void)
      * with the ret instruction.
      */
     asm volatile ("ret\n"::);
+}
+
+/**
+ * @fn kernel_interrupt_task
+ *
+ * @brief used when a publish task interrupts a system task
+ */
+static void kernel_interrupt_task(void)
+{
+    uint8_t sreg;
+
+    sreg = SREG;
+    Disable_Interrupt();
+    kernel_request = TASK_INTERRUPT;
+    enter_kernel();
+
+    SREG = sreg;
 }
 
 
@@ -1187,6 +1219,7 @@ void Service_Subscribe( SERVICE *s, int16_t *v ) {
  * @brief Eecutes tasks subscribed to this one
  */
 void Service_Publish( SERVICE *s, int16_t v ) {
+    int interrupt = 0;
 
     task_descriptor_t* sub = dequeue(&(s->taskQueue));
 
@@ -1198,6 +1231,9 @@ void Service_Publish( SERVICE *s, int16_t v ) {
             if(sub->level == RR) {
                 enqueue_head(&rr_queue, sub);
             } else if(sub->level == SYSTEM) {
+                if(cur_task->level != SYSTEM) {
+                    interrupt = 1;
+                }
                 enqueue_head(&system_queue, sub);
             } else {
                 error_msg = ERR_RUN_8_SUBSCRIBE_PERIODIC_FOUND;
@@ -1205,6 +1241,10 @@ void Service_Publish( SERVICE *s, int16_t v ) {
             }
         }
         sub = dequeue(&(s->taskQueue));
+    }
+
+    if(interrupt) {
+        kernel_interrupt_task();
     }
 }
 
