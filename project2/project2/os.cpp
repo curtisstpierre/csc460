@@ -435,7 +435,7 @@ static void kernel_handle_request(void)
             case SYSTEM:
                 enqueue(&system_queue, cur_task);
                 break;
-            /* If periodic do nothing (kept to show PERIODIC is considered */
+            /* If periodic, set ticks remaining to zero to allow new tasks to run */
             case PERIODIC:
                 ticks_remaining = 0;
                 break;
