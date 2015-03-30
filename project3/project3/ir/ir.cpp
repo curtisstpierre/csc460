@@ -4,7 +4,7 @@
  * Created: 2015-01-28 12:15:57
  *  Author: Daniel
  */
-
+#define F_CPU 16000000UL
 #include "ir.h"
 #include <avr/io.h>
 #include <util/delay.h>
@@ -108,7 +108,7 @@ ISR(TIMER3_COMPA_vect) {
 
 		if(currentBit >= 8) {
 			is_receiving = 0;
-
+			
 			// disable further timer3 interrupts
 			TIMSK3 &= ~(1<<OCIE3A);
 
@@ -142,33 +142,27 @@ void disable_interrupt() {
 }
 
 void mark() {
-	TCCR5A |= (1<<COM5C1);
+	TCCR5A |= (1<<COM5C1);;
+	PORTC |= (1 << PC2);
 	_delay_us(500);
 }
 void space() {
 	TCCR5A &= ~(1 << COM5C1);
+	PORTC &= ~(1 << PC2);
 	_delay_us(500);
 }
 
 void IR_transmit(uint8_t data) {
-	uint8_t sreg = SREG;
-	cli();
-
-	disable_interrupt();
-	TCCR5A |= (1<<COM5C1);
 	mark();
 	space();
 	for(int i = 0; i < 8; i++) {
 		if(((data >> i) & 0x1)) {
 			mark();
-		} else {
+			} else {
 			space();
 		}
 	}
 	space();
-	enable_interrupt();
-
-	SREG = sreg; // sei();
 }
 
 uint8_t IR_getLast(){

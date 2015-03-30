@@ -132,13 +132,12 @@ void wirelessSetup(){
  ***************************/
 void ir_rxhandler() {
 	uint8_t ir_value = IR_getLast();
-	if (ir_value == 0x92)
-	{
-
+	if (ir_value == (uint8_t)'B')
+	{	
+		PORTB |= 1 << PB4;
+		_delay_ms(500);
+		PORTB ^= 1 << PB4;
 	}
-	PORTB |= 1 << PB4;
-	_delay_ms(500);
-	PORTB ^= 1 << PB4;
 }
 /***************************
  * * * * * * * * * * * * * *
@@ -147,7 +146,7 @@ void ir_rxhandler() {
  ***************************/
 void setup(){
 	DDRB |= 1 << PB4;
-	//DDRB |= 1 << PB5;
+	DDRB |= 1 << PB5;
 	//wirelessSetup();
 	IR_init();
 }
@@ -157,7 +156,7 @@ int r_main(){
 	// Add RTOS function here
 	for (;;){
 		_delay_ms(1000);
-		IR_transmit(0x92);
+		IR_transmit('B');
 	}
 	return 0;
 }
