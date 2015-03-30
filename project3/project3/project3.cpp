@@ -18,6 +18,9 @@
 #include "transmitter/packet.h"
 #include "transmitter/radio.h"
 
+// IR lib
+#include "ir/ir.h"
+
 SERVICE* service1;
 SERVICE* service2;
 
@@ -122,73 +125,20 @@ void wirelessSetup(){
 	Radio_Set_Tx_Addr(station_addr);
 }
 
-void timer_three_setup(){
-    //Clear config
-    TCCR3A = 0;
-    TCCR3B = 0;
-
-    //Set CTC 4
-    TCCR3B |= (1 << WGM32); 
-
-    //Set prescaler to 256
-    TCCR3B |= (1<<CS32); 
-    
-    //Set value (0.25 seconds)
-    OCR3A = 0x22FF; 
-
-    //Enable interrupt
-    TIMSK3 |= (1<<OCIE3A); 
-
-    //Set timer to 0
-    TCNT3=0;
-}
-
-void pwm_timer_setup(){
-	// Clear timer config
-	TCCR1A = 0;
-	TCCR1B = 0;
-	TIMSK1 &= ~(1<<OCIE1C);
-
-	// Set to Fast PWM (mode 15)
-	TCCR1A |= (1<<WGM10) | (1<<WGM11);
-	TCCR1B |= (1<<WGM12) | (1<<WGM13);
-
-	// Enable output C.
-	TCCR1A |= (1<<COM1C1);
-
-	// No prescaler
-	TCCR1B |= (1<<CS10);
-
-	OCR1A = 421;  // 38khz frequency
-	OCR1C = 0;    // Target
-}
-
 /***************************
  * * * * * * * * * * * * * *
  *       Interrupts        *
  * * * * * * * * * * * * * *
  ***************************/
-// Use this to check flags and publish services
-ISR(TIMER3_COMPA_vect){
-	// Send a HIGH value for inrared
-	OCR1C = 140;
-	// Send a LOW value for infrared
-	OCR1C = 0;
-}
-
-//Interrupt Service Routine for INT0
-ISR(INT0_vect)
-{
-	unsigned char i, temp;
-	
-	_delay_ms(500); // Software debouncing control
-	
-	/* This for loop blink LEDs on Dataport 5 times*/
-	for(i = 0; i<5; i++)
+void ir_rxhandler() {
+	uint8_t ir_value = IR_getLast();
+	if (ir_value == 0x92)
 	{
-		_delay_ms(500);	// Wait 5 seconds
-		_delay_ms(500);	// Wait 5 seconds
-	}	//Restore old value to DataPort
+
+	}
+	PORTB |= 1 << PB4;
+	_delay_ms(500);
+	PORTB ^= 1 << PB4;
 }
 /***************************
  * * * * * * * * * * * * * *
@@ -196,16 +146,19 @@ ISR(INT0_vect)
  * * * * * * * * * * * * * *
  ***************************/
 void setup(){
-	wirelessSetup();
-	timer_three_setup();
-	pwm_timer_setup();
+	DDRB |= 1 << PB4;
+	//DDRB |= 1 << PB5;
+	//wirelessSetup();
+	IR_init();
 }
 
 int r_main(){
-	// setup();
-
+	setup();
 	// Add RTOS function here
-
+	for (;;){
+		_delay_ms(1000);
+		IR_transmit(0x92);
+	}
 	return 0;
 }
 

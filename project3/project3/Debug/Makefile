@@ -33,19 +33,22 @@ LINKER_SCRIPT_DEP:=
 
 # Every subdirectory with source files must be described here
 SUBDIRS :=  \
+../ir \
+../uart \
 ../roomba \
 ../transmitter
 
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS +=  \
+../ir/ir.cpp \
 ../project3.cpp \
 ../os.cpp \
 ../roomba/roomba.c \
-../roomba/RoombaVer2.c \
 ../transmitter/cops_and_robbers.c \
 ../transmitter/radio.cpp \
-../transmitter/spi.cpp
+../transmitter/spi.cpp \
+../uart/uart.c
 
 
 PREPROCESSING_SRCS += 
@@ -55,40 +58,44 @@ ASM_SRCS +=
 
 
 OBJS +=  \
+ir/ir.o \
 project3.o \
 os.o \
 roomba/roomba.o \
-roomba/RoombaVer2.o \
 transmitter/cops_and_robbers.o \
 transmitter/radio.o \
-transmitter/spi.o
+transmitter/spi.o \
+uart/uart.o
 
 OBJS_AS_ARGS +=  \
+ir/ir.o \
 project3.o \
 os.o \
 roomba/roomba.o \
-roomba/RoombaVer2.o \
 transmitter/cops_and_robbers.o \
 transmitter/radio.o \
-transmitter/spi.o
+transmitter/spi.o \
+uart/uart.o
 
 C_DEPS +=  \
+ir/ir.d \
 project3.d \
 os.d \
 roomba/roomba.d \
-roomba/RoombaVer2.d \
 transmitter/cops_and_robbers.d \
 transmitter/radio.d \
-transmitter/spi.d
+transmitter/spi.d \
+uart/uart.d
 
 C_DEPS_AS_ARGS +=  \
+ir/ir.d \
 project3.d \
 os.d \
 roomba/roomba.d \
-roomba/RoombaVer2.d \
 transmitter/cops_and_robbers.d \
 transmitter/radio.d \
-transmitter/spi.d
+transmitter/spi.d \
+uart/uart.d
 
 OUTPUT_FILE_PATH +=project3.elf
 
@@ -119,6 +126,15 @@ LINKER_SCRIPT_DEP+=
 
 
 
+
+
+ir/%.o: ../ir/%.cpp
+	@echo Building file: $<
+	@echo Invoking: AVR8/GNU C Compiler : 4.8.1
+	$(QUOTE)C:\Program Files (x86)\Atmel\Atmel Toolchain\AVR8 GCC\Native\3.4.1061\avr8-gnu-toolchain\bin\avr-g++.exe$(QUOTE) -funsigned-char -funsigned-bitfields -DDEBUG  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -mrelax -g2 -Wall -mmcu=atmega2560 -c -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
+	@echo Finished building: $<
+	
+
 ./%.o: .././%.cpp
 	@echo Building file: $<
 	@echo Invoking: AVR8/GNU C Compiler : 4.8.1
@@ -144,6 +160,13 @@ transmitter/%.o: ../transmitter/%.cpp
 	@echo Building file: $<
 	@echo Invoking: AVR8/GNU C Compiler : 4.8.1
 	$(QUOTE)C:\Program Files (x86)\Atmel\Atmel Toolchain\AVR8 GCC\Native\3.4.1061\avr8-gnu-toolchain\bin\avr-g++.exe$(QUOTE) -funsigned-char -funsigned-bitfields -DDEBUG  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -mrelax -g2 -Wall -mmcu=atmega2560 -c -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
+	@echo Finished building: $<
+	
+
+uart/%.o: ../uart/%.c
+	@echo Building file: $<
+	@echo Invoking: AVR8/GNU C Compiler : 4.8.1
+	$(QUOTE)C:\Program Files (x86)\Atmel\Atmel Toolchain\AVR8 GCC\Native\3.4.1061\avr8-gnu-toolchain\bin\avr-gcc.exe$(QUOTE)  -x c -funsigned-char -funsigned-bitfields -DF_CPU=16000000L -DDEBUG  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -mrelax -g2 -Wall -mmcu=atmega2560 -c -std=gnu99 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
 	@echo Finished building: $<
 	
 

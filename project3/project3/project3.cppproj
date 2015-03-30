@@ -134,6 +134,12 @@
     <Compile Include="error_code.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="ir\ir.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="ir\ir.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="kernel.h">
       <SubType>compile</SubType>
     </Compile>
@@ -155,9 +161,9 @@
     <Compile Include="roomba\RoombaControler.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="roomba\RoombaVer2.c">
+    <None Include="roomba\RoombaVer2.c">
       <SubType>compile</SubType>
-    </Compile>
+    </None>
     <Compile Include="roomba\roomba_sci.h">
       <SubType>compile</SubType>
     </Compile>
@@ -191,8 +197,16 @@
     <Compile Include="transmitter\spi.h">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="uart\uart.c">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="uart\uart.h">
+      <SubType>compile</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="ir" />
+    <Folder Include="uart" />
     <Folder Include="roomba" />
     <Folder Include="transmitter" />
   </ItemGroup>

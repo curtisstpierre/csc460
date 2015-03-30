@@ -5,15 +5,15 @@
  *      Author: nrqm
  */
 
-#include "roomba/roomba.h"
-#include "roomba/roomba_sci.h"
-#include "uart/uart.h"
+#include "roomba.h"
+#include "roomba_sci.h"
+#include "../uart/uart.h"
 #include <util/delay.h>
 //#include "awesomedelay.h"
 #include "avr/interrupt.h"
-#include "radio/radio.h"
-#include "cops_and_robbers.h"
-#include "ir/ir.h"
+#include "../transmitter/radio.h"
+#include "../transmitter/cops_and_robbers.h"
+#include "../transmitter/ir.h"
 
 //#define     clock8MHz()    CLKPR = _BV(CLKPCE); CLKPR = 0x00;
 #define		TEST_UNIT 10
