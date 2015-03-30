@@ -138,6 +138,12 @@ void ir_rxhandler() {
 		_delay_ms(500);
 		PORTB ^= 1 << PB4;
 	}
+	if (ir_value == (uint8_t)'A')
+	{
+		PORTB |= 1 << PB5;
+		_delay_ms(500);
+		PORTB ^= 1 << PB5;
+	}
 }
 /***************************
  * * * * * * * * * * * * * *
