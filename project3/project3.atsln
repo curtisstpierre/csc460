@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Atmel Studio Solution File, Format Version 11.00
-Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "project2", "project2\project2.cppproj", "{1E83FEA0-3334-4BD2-9A7E-93F385BD53EF}"
+Project("{E66E83B9-2572-4076-B26E-6BE79FF3018A}") = "project3", "project3\project3.cppproj", "{1E83FEA0-3334-4BD2-9A7E-93F385BD53EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

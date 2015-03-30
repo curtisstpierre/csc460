@@ -15,9 +15,8 @@
 #include <avr/interrupt.h>
 
 // Transmitter
-#include <transmitter/packet.h>
-#include <transmitter/radio.h>
-#include <transmitter/stdio.h>
+#include "transmitter/packet.h"
+#include "transmitter/radio.h"
 
 SERVICE* service1;
 SERVICE* service2;
@@ -25,6 +24,7 @@ SERVICE* service2;
 int16_t system_value;
 int16_t rr_value;
 int16_t periodic_value;
+int16_t rxflag;
 
 
 
@@ -100,13 +100,6 @@ void sendPacket(){
  *     Setup Functions     *
  * * * * * * * * * * * * * *
  ***************************/
-
-void setup(){
-	wirelessSetup();
-	timer_three_setup();
-	pwm_timer_setup();
-}
-
 void wirelessSetup(){
 	volatile uint8_t rxflag = 0;
 
@@ -182,11 +175,31 @@ ISR(TIMER3_COMPA_vect){
 	// Send a LOW value for infrared
 	OCR1C = 0;
 }
+
+//Interrupt Service Routine for INT0
+ISR(INT0_vect)
+{
+	unsigned char i, temp;
+	
+	_delay_ms(500); // Software debouncing control
+	
+	/* This for loop blink LEDs on Dataport 5 times*/
+	for(i = 0; i<5; i++)
+	{
+		_delay_ms(500);	// Wait 5 seconds
+		_delay_ms(500);	// Wait 5 seconds
+	}	//Restore old value to DataPort
+}
 /***************************
  * * * * * * * * * * * * * *
  *      Main Function      *
  * * * * * * * * * * * * * *
  ***************************/
+void setup(){
+	wirelessSetup();
+	timer_three_setup();
+	pwm_timer_setup();
+}
 
 int r_main(){
 	// setup();
