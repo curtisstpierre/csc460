@@ -23,6 +23,7 @@
 
 // roomba communication lib
 #include "roomba/roomba.h"
+#include "roomba/roomba_sci.h"
 #include "roomba/sensor_struct.h"
 
 SERVICE* radio_service;
@@ -41,9 +42,11 @@ typedef struct {
 	uint8_t sonar_value; // Add sonar value to this when its changed
 	int16_t v_drive; // Forwards/backwards speed roomba
 	int16_t v_turn; // Turning speed roomba
-} roomba;
+} roomba_state;
 
+roomba_state program_state;
 roomba_sensor_data_t roomba_sensor_packet;
+uint8_t startGame;
 
 /***************************
  * * * * * * * * * * * * * *
@@ -66,10 +69,10 @@ void Collect_Logic_Periodic(){
 		//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); - updates the external sensors of the bot
 		//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
 		//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
-
-		roomba->v_drive = 250; // setting speed of roomba
-		roomba->v_turn = 0; // setting radius of roomba turn
-
+		PORTB |= 1 << PB4;
+		program_state.v_drive = 250; // setting speed of roomba
+		program_state.v_turn = 0; // setting radius of roomba turn
+		PORTB ^= 1 << PB4;
 		Task_Next();
 	}
 }
@@ -77,7 +80,7 @@ void Collect_Logic_Periodic(){
 // Telling the roomba to specifically drive
 void Send_Drive_Command(){
 	for(;;) {
-		Roomba_Drive(roomba->v_drive,-1*roomba->v_turn);
+		Roomba_Drive(program_state.v_drive,-1*program_state.v_turn);
 		Task_Next();
 	}
 }
@@ -183,12 +186,12 @@ void wirelessSetup(){
 void ir_rxhandler() {
 	uint8_t ir_value = IR_getLast();
 	if (ir_value == TEAM_CODE){	
-		roomba->state = 1;
+		program_state.state = 1;
 		PORTB |= 1 << PB4;
 		_delay_ms(500);
 		PORTB ^= 1 << PB4;
 	} else if (ir_value == ENEMY_CODE){
-		roomba->state = 0;
+		program_state.state = 0;
 		PORTB |= 1 << PB5;
 		_delay_ms(500);
 		PORTB ^= 1 << PB5;
@@ -211,10 +214,10 @@ void setup(){
 	IR_init();
 	Roomba_Init();
 
-	roomba->state = 1; // Set bot to alive
-	roomba->v_drive = 0; // Set bot to stand still
-	roomba->v_turn = 0; // Set bot to stand still
-	uint8_t startGame = 1; // Game hasnt started yet
+	program_state.state = 1; // Set bot to alive
+	program_state.v_drive = 0; // Set bot to stand still
+	program_state.v_turn = 0; // Set bot to stand still
+	startGame = 1; // Game hasnt started yet
 }
 
 int r_main(){
@@ -223,9 +226,9 @@ int r_main(){
 	while(!startGame){}; // Wait until game starts from interupt (implement better)
 
 	// Add RTOS functions here
-	Task_Create_Periodic(IR_Transmit_periodic, 0, 5, 2, 0);
-	Task_Create_Periodic(Collect_Logic_Periodic, 0, 5, 7, 0);
-	Task_Create_RR(Send_Drive_Command, 0);
+	Task_Create_Periodic(IR_Transmit_Periodic, 0, 10, 3, 3);
+	Task_Create_Periodic(Collect_Logic_Periodic, 0, 10, 3, 0);
+	Task_Create_Periodic(Send_Drive_Command, 0, 10, 3, 7);
 
 	return 0;
 }

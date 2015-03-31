@@ -153,7 +153,7 @@
     <Compile Include="os.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="roomba\roomba.c">
+    <Compile Include="roomba\roomba.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="roomba\roomba.h">
@@ -177,7 +177,7 @@
     <Compile Include="sonar\Sonar.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="transmitter\cops_and_robbers.c">
+    <Compile Include="transmitter\cops_and_robbers.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="transmitter\cops_and_robbers.h">
@@ -195,16 +195,13 @@
     <Compile Include="transmitter\radio.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="transmitter\sensor_struct.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="transmitter\spi.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="transmitter\spi.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="uart\uart.c">
+    <Compile Include="uart\uart.cpp">
       <SubType>compile</SubType>
     </Compile>
     <Compile Include="uart\uart.h">
