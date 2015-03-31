@@ -43,13 +43,6 @@ typedef struct {
 	int16_t v_turn; // Turning speed roomba
 } roomba;
 
-// used to send non driving commands to roomba
-struct cmd_roomba {
-	uint8_t opcode;
-	uint8_t args[32];
-	uint8_t num_args;
-};
-
 roomba_sensor_data_t roomba_sensor_packet;
 
 /***************************
