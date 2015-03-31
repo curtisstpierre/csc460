@@ -2,14 +2,16 @@
  * ir.c
  *
  * Created: 2015-01-28 12:15:57
- *  Author: Daniel
+ * Author: Daniel
+ * Modified By: Mark and Curtis
+ *
  */
+
 #define F_CPU 16000000UL
 #include "ir.h"
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
-//#include "../profiler.h"
 
 extern void ir_rxhandler();
 
@@ -21,8 +23,7 @@ volatile uint8_t outputByte = 0;
 
 
 // enable the interrupt handler for the timer register
-// set the control and status register
-	// mode, prescalar
+// set the control and status register mode, prescalar
 // output compare register ( when to fire the thingy)
 
 //Timer 5 runs PWM.
@@ -37,14 +38,14 @@ void IR_init() {
 	DDRL |= (1 << PL3)  | ( 1 << PL5);
 	TCCR5A = 0;
 	TCCR5B = 0;
-	//TIMSK5 &= ~(1 << OCIE5C);
+
 	// fast pwm
 	TCCR5A |= (1<<WGM50) | (1<<WGM51);
 	TCCR5B |= (1<<WGM52) | (1<<WGM53);
 	// output to pin 44, for output C
 	// but have the output turned off to begin with.
 	TCCR5A &= ~(1 << COM5C1);
-	//TCCR5A |= (1 << COM5C1);
+
 	// no prescaler
 	TCCR5B |= (1 << CS50);
 	// set output compare counts
@@ -62,13 +63,9 @@ void IR_init() {
 	TIMSK3 &= ~(1<<OCIE3A);
 
 	//Setup the input interrupt on pin 3 (PE5/INT5)
-	// DDRE &= ~(1<<PE5);
-	// EICRB |= (1<<ISC51) | (1<<ISC50);
 	DDRE &= ~_BV(PE5);
 
 	EICRB |= (1<<ISC51) | (1<<ISC50);
-	// EICRB |= _BV(ISC51);
-	// EICRB &= ~_BV(ISC50);
 	EIMSK |= _BV(INT5);
 	EIFR |= _BV(INTF5);
 }
@@ -101,7 +98,6 @@ ISR(TIMER3_COMPA_vect) {
 		if(!(PINE & (1<<PE5)) ) {
 			currentByte |= (1<<currentBit);
 		}
-
 
 		++currentBit;
 		OCR3A += 8000;
@@ -142,7 +138,7 @@ void disable_interrupt() {
 }
 
 void mark() {
-	TCCR5A |= (1<<COM5C1);;
+	TCCR5A |= (1<<COM5C1);
 	PORTC |= (1 << PC2);
 	_delay_us(500);
 }
@@ -153,6 +149,11 @@ void space() {
 }
 
 void IR_transmit(uint8_t data) {
+	/*uint8_t sreg = SREG;
+	cli();
+
+	disable_interrupt();*/
+
 	mark();
 	space();
 	for(int i = 0; i < 8; i++) {
@@ -163,6 +164,10 @@ void IR_transmit(uint8_t data) {
 		}
 	}
 	space();
+
+	/*enable_interrupt();
+
+	SREG = sreg; // sei();*/
 }
 
 uint8_t IR_getLast(){

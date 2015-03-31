@@ -21,15 +21,73 @@
 // IR lib
 #include "ir/ir.h"
 
-SERVICE* service1;
-SERVICE* service2;
+// roomba communication lib
+#include "roomba/roomba.h"
+#include "roomba/sensor_struct.h"
 
-int16_t system_value;
-int16_t rr_value;
-int16_t periodic_value;
+SERVICE* radio_service;
+SERVICE* ir_service;
+
+// Codes of two teams in game
+#define ENEMY_CODE (uint8_t)'B'
+#define TEAM_CODE (uint8_t)'A'
+
+// Flag for radio receive
 int16_t rxflag;
 
+typedef struct {
+	// true value is alive
+	uint8_t state;
+	uint8_t sonar_value; // Add sonar value to this when its changed
+	int16_t v_drive; // Forwards/backwards speed roomba
+	int16_t v_turn; // Turning speed roomba
+} roomba;
 
+// used to send non driving commands to roomba
+struct cmd_roomba {
+	uint8_t opcode;
+	uint8_t args[32];
+	uint8_t num_args;
+};
+
+roomba_sensor_data_t roomba_sensor_packet;
+
+/***************************
+ * * * * * * * * * * * * * *
+ *      RTOS Functions     *
+ * * * * * * * * * * * * * *
+ ***************************/
+
+void IR_Transmit_Periodic(){
+	for(;;) {
+		IR_transmit(TEAM_CODE);
+		Task_Next();
+	}
+}
+
+void Collect_Logic_Periodic(){
+	for(;;) {
+		// Add collection of all sensors and set appropriate information
+
+		//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); - updates the sensors in the roombas chassis
+		//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); - updates the external sensors of the bot
+		//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
+		//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
+
+		roomba->v_drive = 250; // setting speed of roomba
+		roomba->v_turn = 0; // setting radius of roomba turn
+
+		Task_Next();
+	}
+}
+
+// Telling the roomba to specifically drive
+void Send_Drive_Command(){
+	for(;;) {
+		Roomba_Drive(roomba->v_drive,-1*roomba->v_turn);
+		Task_Next();
+	}
+}
 
 /***************************
  * * * * * * * * * * * * * *
@@ -103,15 +161,14 @@ void sendPacket(){
  *     Setup Functions     *
  * * * * * * * * * * * * * *
  ***************************/
-void wirelessSetup(){
-	volatile uint8_t rxflag = 0;
 
-	uint8_t station_addr[5] = { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA }; // Receiver address
-	uint8_t my_addr[5] = { 0x66, 0x66, 0x66, 0x66, 0x66 }; // Transmitter address
+void wirelessSetup(){
+	/*volatile uint8_t rxflag = 0;
+
+	uint8_t station_addr[5] = { 0xA7, 0xA7, 0xA7, 0xA7, 0xA7 }; // Receiver address
+	uint8_t my_addr[5] = { 0x6b, 0x6b, 0x6b, 0x6b, 0x6b }; // Transmitter address
 
 	radiopacket_t packet;
-
-	uint8_t IRMessage = 'A';
 
 	// Joystick Variables
 	uint8_t driveCommand[4];
@@ -122,7 +179,7 @@ void wirelessSetup(){
 	Radio_Configure_Rx(RADIO_PIPE_0, my_addr, ENABLE);
 	// configure radio transceiver settings.
 	Radio_Configure(RADIO_2MBPS, RADIO_HIGHEST_POWER);
-	Radio_Set_Tx_Addr(station_addr);
+	Radio_Set_Tx_Addr(station_addr);*/
 }
 
 /***************************
@@ -132,18 +189,21 @@ void wirelessSetup(){
  ***************************/
 void ir_rxhandler() {
 	uint8_t ir_value = IR_getLast();
-	if (ir_value == (uint8_t)'B')
-	{	
+	if (ir_value == TEAM_CODE){	
+		roomba->state = 1;
 		PORTB |= 1 << PB4;
 		_delay_ms(500);
 		PORTB ^= 1 << PB4;
-	}
-	if (ir_value == (uint8_t)'A')
-	{
+	} else if (ir_value == ENEMY_CODE){
+		roomba->state = 0;
 		PORTB |= 1 << PB5;
 		_delay_ms(500);
 		PORTB ^= 1 << PB5;
 	}
+}
+
+void radio_rxhandler(uint8_t pipe_number){
+  //rxflag = 1; // Need to do a interupt publish here that calls the receive function
 }
 /***************************
  * * * * * * * * * * * * * *
@@ -151,24 +211,29 @@ void ir_rxhandler() {
  * * * * * * * * * * * * * *
  ***************************/
 void setup(){
-	DDRB |= 1 << PB4;
-	DDRB |= 1 << PB5;
+	DDRB |= 1 << PB4; // Testing IR alive
+	DDRB |= 1 << PB5; // Testing IR dead
+
 	//wirelessSetup();
 	IR_init();
+	Roomba_Init();
+
+	roomba->state = 1; // Set bot to alive
+	roomba->v_drive = 0; // Set bot to stand still
+	roomba->v_turn = 0; // Set bot to stand still
+	uint8_t startGame = 1; // Game hasnt started yet
 }
 
 int r_main(){
 	setup();
-	// Add RTOS function here
-	for (;;){
-		_delay_ms(1000);
-		IR_transmit('B');
-	}
-	return 0;
-}
 
-// Lets us know a message has come in
-void radio_rxhandler(uint8_t pipe_number){
-  rxflag = 1; // Need to do a interupt publish here that calls the receive function
+	while(!startGame){}; // Wait until game starts from interupt (implement better)
+
+	// Add RTOS functions here
+	Task_Create_Periodic(IR_Transmit_periodic, 0, 5, 2, 0);
+	Task_Create_Periodic(Collect_Logic_Periodic, 0, 5, 7, 0);
+	Task_Create_RR(Send_Drive_Command, 0);
+
+	return 0;
 }
 
