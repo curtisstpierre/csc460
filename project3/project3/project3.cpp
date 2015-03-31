@@ -46,6 +46,7 @@ typedef struct {
 
 roomba_state program_state;
 roomba_sensor_data_t roomba_sensor_packet;
+ROOMBA_SENSOR_GROUP test = CHASSIS;
 uint8_t startGame;
 
 /***************************
@@ -61,20 +62,29 @@ void IR_Transmit_Periodic(){
 	}
 }
 
-void Collect_Logic_Periodic(){
+void Collect_Logic_RR(){
 	for(;;) {
 		// Add collection of all sensors and set appropriate information
 
-		//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); - updates the sensors in the roombas chassis
-		//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); - updates the external sensors of the bot
+		//Roomba_UpdateSensorPacket(test, &roomba_sensor_packet); // updates the sensors in the roombas chassis
+		//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
 		//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
 		//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
-		PORTB |= 1 << PB4;
 		program_state.v_drive = 250; // setting speed of roomba
 		program_state.v_turn = 0; // setting radius of roomba turn
-		PORTB ^= 1 << PB4;
-		Task_Next();
 	}
+}
+
+void Collect_Logic_Periodic(){
+	// Add collection of all sensors and set appropriate information
+
+	//Roomba_UpdateSensorPacket(test, &roomba_sensor_packet); // updates the sensors in the roombas chassis
+	//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
+	//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
+	//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
+	program_state.v_drive = 250; // setting speed of roomba
+	program_state.v_turn = 0; // setting radius of roomba turn
+	Task_Next();
 }
 
 // Telling the roomba to specifically drive
@@ -227,7 +237,8 @@ int r_main(){
 
 	// Add RTOS functions here
 	Task_Create_Periodic(IR_Transmit_Periodic, 0, 10, 3, 3);
-	Task_Create_Periodic(Collect_Logic_Periodic, 0, 10, 3, 0);
+	//Task_Create_Periodic(Collect_Logic_Periodic, 0, 10000, 10000, 0);
+	//Task_Create_RR(Collect_Logic_RR, 0);
 	Task_Create_Periodic(Send_Drive_Command, 0, 10, 3, 7);
 
 	return 0;
