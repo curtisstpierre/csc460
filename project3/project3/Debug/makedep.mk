@@ -10,6 +10,8 @@ os.cpp
 
 roomba\roomba.c
 
+sonar\Sonar.cpp
+
 transmitter\cops_and_robbers.c
 
 transmitter\radio.cpp

@@ -34,6 +34,7 @@ LINKER_SCRIPT_DEP:=
 # Every subdirectory with source files must be described here
 SUBDIRS :=  \
 ../ir \
+../sonar \
 ../uart \
 ../roomba \
 ../transmitter
@@ -45,6 +46,7 @@ C_SRCS +=  \
 ../project3.cpp \
 ../os.cpp \
 ../roomba/roomba.c \
+../sonar/Sonar.cpp \
 ../transmitter/cops_and_robbers.c \
 ../transmitter/radio.cpp \
 ../transmitter/spi.cpp \
@@ -62,6 +64,7 @@ ir/ir.o \
 project3.o \
 os.o \
 roomba/roomba.o \
+sonar/Sonar.o \
 transmitter/cops_and_robbers.o \
 transmitter/radio.o \
 transmitter/spi.o \
@@ -72,6 +75,7 @@ ir/ir.o \
 project3.o \
 os.o \
 roomba/roomba.o \
+sonar/Sonar.o \
 transmitter/cops_and_robbers.o \
 transmitter/radio.o \
 transmitter/spi.o \
@@ -82,6 +86,7 @@ ir/ir.d \
 project3.d \
 os.d \
 roomba/roomba.d \
+sonar/Sonar.d \
 transmitter/cops_and_robbers.d \
 transmitter/radio.d \
 transmitter/spi.d \
@@ -92,6 +97,7 @@ ir/ir.d \
 project3.d \
 os.d \
 roomba/roomba.d \
+sonar/Sonar.d \
 transmitter/cops_and_robbers.d \
 transmitter/radio.d \
 transmitter/spi.d \
@@ -128,6 +134,8 @@ LINKER_SCRIPT_DEP+=
 
 
 
+
+
 ir/%.o: ../ir/%.cpp
 	@echo Building file: $<
 	@echo Invoking: AVR8/GNU C Compiler : 4.8.1
@@ -146,6 +154,13 @@ roomba/%.o: ../roomba/%.c
 	@echo Building file: $<
 	@echo Invoking: AVR8/GNU C Compiler : 4.8.1
 	$(QUOTE)C:\Program Files (x86)\Atmel\Atmel Toolchain\AVR8 GCC\Native\3.4.1061\avr8-gnu-toolchain\bin\avr-gcc.exe$(QUOTE)  -x c -funsigned-char -funsigned-bitfields -DF_CPU=16000000L -DDEBUG  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -mrelax -g2 -Wall -mmcu=atmega2560 -c -std=gnu99 -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
+	@echo Finished building: $<
+	
+
+sonar/%.o: ../sonar/%.cpp
+	@echo Building file: $<
+	@echo Invoking: AVR8/GNU C Compiler : 4.8.1
+	$(QUOTE)C:\Program Files (x86)\Atmel\Atmel Toolchain\AVR8 GCC\Native\3.4.1061\avr8-gnu-toolchain\bin\avr-g++.exe$(QUOTE) -funsigned-char -funsigned-bitfields -DDEBUG -DF_CPU=16000000UL  -O1 -ffunction-sections -fdata-sections -fpack-struct -fshort-enums -mrelax -g2 -Wall -mmcu=atmega2560 -c -MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"   -o "$@" "$<" 
 	@echo Finished building: $<
 	
 
