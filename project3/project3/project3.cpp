@@ -27,18 +27,21 @@
 #include "roomba/sensor_struct.h"
 
 SERVICE* radio_service;
-SERVICE* ir_service;
+SERVICE* radio_service_response;
 
 // Codes of two teams in game
 #define ENEMY_CODE (uint8_t)'B'
 #define TEAM_CODE (uint8_t)'A'
 
-// Flag for radio receive
-int16_t rxflag;
+// Packet for radio receive
+radiopacket_t packet;
+
+uint8_t station_addr[5] = { 0xA7, 0xA7, 0xA7, 0xA7, 0xA7 }; // Receiver address
+uint8_t my_addr[5] = { 0x6b, 0x6b, 0x6b, 0x6b, 0x6b }; // Transmitter address
 
 typedef struct {
-	// true value is alive
-	uint8_t state;
+	uint8_t id;
+	uint8_t state; // true value is alive
 	uint8_t sonar_value; // Add sonar value to this when its changed
 	int16_t v_drive; // Forwards/backwards speed roomba
 	int16_t v_turn; // Turning speed roomba
@@ -69,10 +72,8 @@ void Collect_Logic_Periodic(){
 		//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); - updates the external sensors of the bot
 		//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
 		//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
-		PORTB |= 1 << PB4;
 		program_state.v_drive = 250; // setting speed of roomba
 		program_state.v_turn = 0; // setting radius of roomba turn
-		PORTB ^= 1 << PB4;
 		Task_Next();
 	}
 }
@@ -92,64 +93,53 @@ void Send_Drive_Command(){
  ***************************/
 
 // This is called when we receive a notification that a message has been received
-void wirelessReceiving(){
-	/*if (rxflag){
-	    if (Radio_Receive(&packet) != RADIO_RX_MORE_PACKETS){
-	      rxflag = 0;
-	    }
-	}*/
+void Wireless_Receiving(){
+    RADIO_RX_STATUS radio_status;
+    int16_t radio_service_value;
+
+    for(;;){
+        Service_Subscribe(radio_service, &radio_service_value);
+
+        do {
+            radio_status = Radio_Receive(&packet);
+
+            if(radio_status == RADIO_RX_MORE_PACKETS || radio_status == RADIO_RX_SUCCESS) {
+    			if(packet.type == GAMESTATE_PACKET){
+    				if(packet.payload.message.game_state == GAME_STARTNG){
+    					startGame = 1;
+    				}
+    				if(packet.payload.message.game_state == GAME_OVER){
+    					// Do Something
+    				}
+    				if(packet.payload.message.roomba_states[program_state.id] == 0 && program_state.state == 1){
+    					Service_Publish(radio_service_response, 1);
+    				}
+    				if(packet.payload.message.roomba_states[program_state.id] == 1 && program_state.state == 0){
+    					Service_Publish(radio_service_response, 0);
+    				}
+    			}
+            }
+
+        } while(radio_status == RADIO_RX_MORE_PACKETS);
+    }
 }
 
 // This function applies logic to build the parameters later used in the sendPacket function
-void wirelessSending(){
-	/*XMap = map(potXVal, 0, 1023, -1800, 1800);
-	YMap = map(potYVal, 0, 1023, -350, 350);
+void Wireless_Sending(){
+	int16_t radio_response_service_value;
+	pf_roombastate_t roomba_state_command;
 
-	if (XMap > 0){
-	XMap = 1800 - XMap;
-	} else {
-	XMap = -1800 - XMap;
+	for(;;){
+	    Service_Subscribe(radio_service_response, &radio_response_service_value);
+
+        roomba_state_command.roomba_state = program_state.state;
+        roomba_state_command.roomba_id = program_state.id;
+
+        packet.type = ROOMBASTATE_PACKET;
+        memcpy(&packet.payload.message, &roomba_state_command, sizeof(pf_roombastate_t));
+
+        uint8_t status = Radio_Transmit(&packet, RADIO_RETURN_ON_TX);
 	}
-
-	driveCommand[0] = (YMap >> 8);
-	driveCommand[1] = YMap & 0xff;
-	driveCommand[2] = (XMap >> 8);
-	driveCommand[3] = XMap & 0xff;
-
-	sendPacket();
-	delay(100);*/
-}
-
-// Used to send the packets
-void sendPacket(){
-	/*packet.type = IR_COMMAND;
-	memcpy(packet.payload.ir_command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
-	pf_ir_command_t * ir_cmd =  &(packet.payload.ir_command);
-	ir_cmd->ir_command = SEND_BYTE;
-	ir_cmd->servo_angle = 0;
-	ir_cmd->ir_data = IRMessage;
-
-	if (Radio_Transmit(&packet, RADIO_WAIT_FOR_TX) == RADIO_TX_MAX_RT){
-	  // Max retries reached
-	}else{
-	  // Submitted data succesfully
-	}
-
-	packet.type = COMMAND;
-	memcpy(packet.payload.command.sender_address, my_addr, RADIO_ADDRESS_LENGTH);
-	pf_command_t * cmd =  &(packet.payload.command);
-	cmd->command = 137;
-	cmd->num_arg_bytes = 4;
-	cmd->arguments[0] = driveCommand[0];
-	cmd->arguments[1] = driveCommand[1];
-	cmd->arguments[2] = driveCommand[2];
-	cmd->arguments[3] = driveCommand[3];
-
-	if (Radio_Transmit(&packet, RADIO_WAIT_FOR_TX) == RADIO_TX_MAX_RT){
-	  // Max retries reached
-	}else{
-	  // Submitted data succesfully
-	} */
 }
 
 /***************************
@@ -158,24 +148,14 @@ void sendPacket(){
  * * * * * * * * * * * * * *
  ***************************/
 
-void wirelessSetup(){
-	/*volatile uint8_t rxflag = 0;
-
-	uint8_t station_addr[5] = { 0xA7, 0xA7, 0xA7, 0xA7, 0xA7 }; // Receiver address
-	uint8_t my_addr[5] = { 0x6b, 0x6b, 0x6b, 0x6b, 0x6b }; // Transmitter address
-
-	radiopacket_t packet;
-
-	// Joystick Variables
-	uint8_t driveCommand[4];
-
+void Wireless_Init(){
 	Radio_Init();
 
 	// configure the receive settings for radio pipe 0
 	Radio_Configure_Rx(RADIO_PIPE_0, my_addr, ENABLE);
 	// configure radio transceiver settings.
 	Radio_Configure(RADIO_2MBPS, RADIO_HIGHEST_POWER);
-	Radio_Set_Tx_Addr(station_addr);*/
+	Radio_Set_Tx_Addr(station_addr);
 }
 
 /***************************
@@ -187,36 +167,29 @@ void ir_rxhandler() {
 	uint8_t ir_value = IR_getLast();
 	if (ir_value == TEAM_CODE){	
 		program_state.state = 1;
-		PORTB |= 1 << PB4;
-		_delay_ms(500);
-		PORTB ^= 1 << PB4;
 	} else if (ir_value == ENEMY_CODE){
 		program_state.state = 0;
-		PORTB |= 1 << PB5;
-		_delay_ms(500);
-		PORTB ^= 1 << PB5;
 	}
 }
 
 void radio_rxhandler(uint8_t pipe_number){
-  //rxflag = 1; // Need to do a interupt publish here that calls the receive function
+    Service_Publish(radio_service, pipe_number);
 }
+
 /***************************
  * * * * * * * * * * * * * *
  *      Main Function      *
  * * * * * * * * * * * * * *
  ***************************/
 void setup(){
-	DDRB |= 1 << PB4; // Testing IR alive
-	DDRB |= 1 << PB5; // Testing IR dead
-
-	//wirelessSetup();
+	//Wireless_Init();
 	IR_init();
 	Roomba_Init();
 
 	program_state.state = 1; // Set bot to alive
 	program_state.v_drive = 0; // Set bot to stand still
 	program_state.v_turn = 0; // Set bot to stand still
+
 	startGame = 1; // Game hasnt started yet
 }
 
@@ -225,10 +198,15 @@ int r_main(){
 
 	while(!startGame){}; // Wait until game starts from interupt (implement better)
 
+	//radio_service = Service_Init();
+    //radio_service_response = Service_Init();
+
 	// Add RTOS functions here
 	Task_Create_Periodic(IR_Transmit_Periodic, 0, 10, 3, 3);
 	Task_Create_Periodic(Collect_Logic_Periodic, 0, 10, 3, 0);
 	Task_Create_Periodic(Send_Drive_Command, 0, 10, 3, 7);
+	//Task_Create_RR(Wireless_Receiving, 0);
+	//Task_Create_System(Wireless_Sending, 0);
 
 	return 0;
 }
