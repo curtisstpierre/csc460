@@ -25,6 +25,7 @@
 #include "roomba/roomba.h"
 #include "roomba/roomba_sci.h"
 #include "roomba/sensor_struct.h"
+#include "uart/uart.h"
 
 SERVICE* radio_service;
 SERVICE* radio_service_response;
@@ -70,9 +71,33 @@ void Collect_Logic_Periodic(){
 
 		//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); - updates the sensors in the roombas chassis
 		//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); - updates the external sensors of the bot
-		//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
-		//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
-		program_state.v_drive = 250; // setting speed of roomba
+
+		Roomba_Send_Byte(142);
+		Roomba_Send_Byte(8);
+		_delay_ms(20);
+		roomba_sensor_packet->wall = uart_get_byte(0);
+
+		/*Roomba_Send_Byte(142);
+		Roomba_Send_Byte(9);
+		_delay_ms(20);
+		roomba_sensor_packet->cliff_left = uart_get_byte(0);
+
+		Roomba_Send_Byte(142);
+		Roomba_Send_Byte(10);
+		_delay_ms(20);
+		roomba_sensor_packet->cliff_front_left = uart_get_byte(0);
+
+		Roomba_Send_Byte(142);
+		Roomba_Send_Byte(11);
+		_delay_ms(20);
+		roomba_sensor_packet->cliff_front_right = uart_get_byte(0);
+
+		Roomba_Send_Byte(142);
+		Roomba_Send_Byte(12);
+		_delay_ms(20);
+		roomba_sensor_packet->cliff_right = uart_get_byte(0);*/
+
+		program_state.v_drive = 300; // setting speed of roomba
 		program_state.v_turn = 0; // setting radius of roomba turn
 		Task_Next();
 	}
@@ -202,9 +227,9 @@ int r_main(){
     //radio_service_response = Service_Init();
 
 	// Add RTOS functions here
-	Task_Create_Periodic(IR_Transmit_Periodic, 0, 10, 3, 3);
-	Task_Create_Periodic(Collect_Logic_Periodic, 0, 10, 3, 0);
-	Task_Create_Periodic(Send_Drive_Command, 0, 10, 3, 7);
+	Task_Create_Periodic(IR_Transmit_Periodic, 0, 50, 30, 33);
+	Task_Create_Periodic(Collect_Logic_Periodic, 0, 100, 30, 0);
+	Task_Create_Periodic(Send_Drive_Command, 0, 50, 30, 67);
 	//Task_Create_RR(Wireless_Receiving, 0);
 	//Task_Create_System(Wireless_Sending, 0);
 

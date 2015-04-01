@@ -67,7 +67,6 @@ void Roomba_UpdateSensorPacket(ROOMBA_SENSOR_GROUP group, roomba_sensor_data_t* 
 		break;
 	case CHASSIS:
 		// chassis sensors	
-		PORTB |= 1 << PB4;
 		while (uart_bytes_received() != 6);
 		sensor_packet->remote_opcode = uart_get_byte(0);
 		sensor_packet->buttons = uart_get_byte(1);
@@ -75,7 +74,6 @@ void Roomba_UpdateSensorPacket(ROOMBA_SENSOR_GROUP group, roomba_sensor_data_t* 
 		sensor_packet->distance.bytes.low_byte = uart_get_byte(3);
 		sensor_packet->angle.bytes.high_byte = uart_get_byte(4);
 		sensor_packet->angle.bytes.low_byte = uart_get_byte(5);
-		PORTB ^= 1 << PB4;
 		break;
 	case INTERNAL:
 		// internal sensors
