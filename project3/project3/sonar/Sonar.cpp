@@ -20,11 +20,9 @@
 uint16_t rising_timestamp;
 
 void SonarInit() {
-	sei();
-
-	TCCR4A = 0;
-	TCCR4B = 0;
-	TCCR4C = 0;
+	TCCR5A = 0;
+	TCCR5B = 0;
+	TCCR5C = 0;
 
 	// Set input capture for rising edge
 	TCCR4B |= _BV(ICES5);
@@ -41,19 +39,17 @@ void SonarInit() {
 }
 
 #define START_TIMER \
-	TCNT4 = 0;\
-	TCCR4B |= _BV(ICES5);\
-	TCCR4B |= (3 << CS50);\
+	TCNT5 = 0;\
+	TCCR5B |= _BV(ICES5);\
+	TCCR5B |= (3 << CS50);\
 
 #define STOP_TIMER \
-	TCCR4B &= ~(7 << CS50);
+	TCCR5B &= ~(7 << CS50);
 
 int SonarGetDistance() {
 	// Raise the request for the sonar
 	SONAR_RX_PORT |= _BV(SONAR_RX_PIN);
-
 	START_TIMER
-
 	// Busy wait until rising edge
 	while (!(TIFR5 & _BV(ICF5)))
 		;
@@ -70,14 +66,11 @@ int SonarGetDistance() {
 		;
 	// Clear the flag
 	TIFR5 |= _BV(ICF5);
-
 	// Lower the request for the sonar
 	SONAR_RX_PORT &= ~_BV(SONAR_RX_PIN);
 
 	STOP_TIMER
-
 	// The falling edge triggered the ISR
 	uint32_t delta = (uint32_t) ICR5 - (uint32_t) rising_timestamp;
-
 	return delta * DELTA_MULTIPLIER;
 }

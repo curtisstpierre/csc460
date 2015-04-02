@@ -9,6 +9,7 @@
 #define F_CPU 16000000UL
 #include "os.h"
 #include "BlockingUART.h"
+#include "sonar/Sonar.h"
 #include <util/delay.h>
 #include <avr/io.h>
 #include <stdbool.h>
@@ -77,8 +78,7 @@ void Collect_Logic_RR(){
 
 void Collect_Logic_Periodic(){
 	// Add collection of all sensors and set appropriate information
-
-	//Roomba_UpdateSensorPacket(test, &roomba_sensor_packet); // updates the sensors in the roombas chassis
+	//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
 	//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
 	//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
 	//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
@@ -87,10 +87,27 @@ void Collect_Logic_Periodic(){
 	Task_Next();
 }
 
+void Collect_Sonar_System(){
+	// Add collection of all sensors and set appropriate information
+	Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
+	//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
+	//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
+	//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
+	//SonarGetDistance();
+	Task_Next();
+}
+
 // Telling the roomba to specifically drive
 void Send_Drive_Command(){
 	for(;;) {
-		Roomba_Drive(program_state.v_drive,-1*program_state.v_turn);
+		if (program_state.sonar_value > 2000)
+		{
+			Roomba_Drive(program_state.v_drive,-1*program_state.v_turn);
+		}
+		else
+		{
+			Roomba_Drive(100,-1);
+		}
 		Task_Next();
 	}
 }
@@ -221,26 +238,31 @@ void setup(){
 	DDRB |= 1 << PB5; // Testing IR dead
 
 	//wirelessSetup();
-	IR_init();
+	SonarInit();
+	//IR_init();
 	Roomba_Init();
-
+	program_state.sonar_value = 100;
 	program_state.state = 1; // Set bot to alive
 	program_state.v_drive = 0; // Set bot to stand still
 	program_state.v_turn = 0; // Set bot to stand still
-	startGame = 1; // Game hasnt started yet
+	startGame = 1; // Game hasn't started yet
 }
 
 int r_main(){
 	setup();
 
-	while(!startGame){}; // Wait until game starts from interupt (implement better)
+	while(!startGame){}; // Wait until game starts from interrupt (implement better)
 
 	// Add RTOS functions here
-	Task_Create_Periodic(IR_Transmit_Periodic, 0, 10, 3, 3);
-	//Task_Create_Periodic(Collect_Logic_Periodic, 0, 10000, 10000, 0);
+	Task_Create_Periodic(IR_Transmit_Periodic, 0, 20, 1, 3);
+	Task_Create_Periodic(Collect_Logic_Periodic, 0, 20, 10, 0);
 	//Task_Create_RR(Collect_Logic_RR, 0);
-	Task_Create_Periodic(Send_Drive_Command, 0, 10, 3, 7);
-
+	//Collect_Logic_Periodic();
+	//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet);
+	//PORTB ^= 1 << PB4;
+	//_delay_ms(500);
+	Task_Create_System(Collect_Sonar_System,0);
+	Task_Create_Periodic(Send_Drive_Command, 0, 20, 2, 7);
 	return 0;
 }
 
