@@ -70,9 +70,14 @@ void Collect_Logic_Periodic(){
 	for(;;) {
 		// Add collection of all sensors and set appropriate information
 
-		//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); - updates the sensors in the roombas chassis
-		//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); - updates the external sensors of the bot
-
+		//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
+		Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
+		
+		//Roomba_Send_Byte(142);
+		//Roomba_Send_Byte(8);
+		//while (uart_bytes_received() != 1);
+		//roomba_sensor_packet.wall = uart_get_byte(0);
+		
 		/*Roomba_Send_Byte(142);
 		Roomba_Send_Byte(9);
 		_delay_ms(20);
@@ -102,7 +107,12 @@ void Collect_Logic_Periodic(){
 // Telling the roomba to specifically drive
 void Send_Drive_Command(){
 	for(;;) {
-		Roomba_Drive(program_state.v_drive,-1*program_state.v_turn);
+		if (roomba_sensor_packet.bumps_wheeldrops){
+			Roomba_Drive(-100,-1);
+		}
+		else{
+			Roomba_Drive(100,0);
+		}
 		Task_Next();
 	}
 }
@@ -206,7 +216,7 @@ void radio_rxhandler(uint8_t pipe_number){
  * * * * * * * * * * * * * *
  ***************************/
 void setup(){
-	//Wireless_Init();
+	Wireless_Init();
 	DDRB |= 1 << PB4; // Testing IR alive
 	IR_init();
 	Roomba_Init();
