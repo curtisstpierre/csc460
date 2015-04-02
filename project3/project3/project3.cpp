@@ -52,6 +52,7 @@ typedef struct {
 roomba_state program_state;
 roomba_sensor_data_t roomba_sensor_packet;
 uint8_t startGame;
+uint8_t light;
 
 /***************************
  * * * * * * * * * * * * * *
@@ -69,14 +70,10 @@ void IR_Transmit_Periodic(){
 void Collect_Logic_Periodic(){
 	for(;;) {
 		// Add collection of all sensors and set appropriate information
-
-		//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
+		//Roomba_UpdateSensorPacket(LIGHT_SENSOR, &roomba_sensor_packet);
+		Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
 		Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
-		
-		//Roomba_Send_Byte(142);
-		//Roomba_Send_Byte(8);
-		//while (uart_bytes_received() != 1);
-		//roomba_sensor_packet.wall = uart_get_byte(0);
+		Roomba_UpdateSensorPacket(LIGHT_SENSOR, &roomba_sensor_packet); // updates the light sensors of the bot
 		
 		/*Roomba_Send_Byte(142);
 		Roomba_Send_Byte(9);
@@ -96,10 +93,7 @@ void Collect_Logic_Periodic(){
 		Roomba_Send_Byte(142);
 		Roomba_Send_Byte(12);
 		_delay_ms(20);
-		roomba_sensor_packet->cliff_right = uart_get_byte(0);*/
-
-		program_state.v_drive = 300; // setting speed of roomba
-		program_state.v_turn = 0; // setting radius of roomba turn
+		roomba_sensor_packet->cliff_right = uart_get_byte(0);*/		
 		Task_Next();
 	}
 }
@@ -107,12 +101,29 @@ void Collect_Logic_Periodic(){
 // Telling the roomba to specifically drive
 void Send_Drive_Command(){
 	for(;;) {
-		if (roomba_sensor_packet.bumps_wheeldrops){
-			Roomba_Drive(-100,-1);
+		if(roomba_sensor_packet.bumps_wheeldrops & 0x1)
+		{
+			program_state.v_drive = 100; // setting speed of roomba
+			program_state.v_turn = 1; // setting radius of roomba turn
+		}
+		else if (roomba_sensor_packet.bumps_wheeldrops & 0x2){
+			program_state.v_drive = 100; // setting speed of roomba
+			program_state.v_turn = -1; // setting radius of roomba turn
+		}
+		else if(roomba_sensor_packet.light_bumber & 0x7)
+		{
+			program_state.v_drive = 100; // setting speed of roomba
+			program_state.v_turn = 1; // setting radius of roomba turn
+		}
+		else if (roomba_sensor_packet.light_bumber & 0x38){
+			program_state.v_drive = 100; // setting speed of roomba
+			program_state.v_turn = -1; // setting radius of roomba turn
 		}
 		else{
-			Roomba_Drive(100,0);
+			program_state.v_drive = 100; // setting speed of roomba
+			program_state.v_turn = 0; // setting radius of roomba turn
 		}
+		Roomba_Drive(program_state.v_drive, program_state.v_turn);
 		Task_Next();
 	}
 }
@@ -237,9 +248,9 @@ int r_main(){
     //radio_service_response = Service_Init();
 
 	// Add RTOS functions here
-	Task_Create_Periodic(IR_Transmit_Periodic, 0, 50, 30, 33);
-	Task_Create_Periodic(Collect_Logic_Periodic, 0, 50, 30, 0);
-	Task_Create_Periodic(Send_Drive_Command, 0, 50, 30, 67);
+	Task_Create_Periodic(IR_Transmit_Periodic, 0, 50, 5, 46);
+	Task_Create_Periodic(Collect_Logic_Periodic, 0, 50, 40, 0);
+	Task_Create_Periodic(Send_Drive_Command, 0, 50, 5, 41);
 	//Task_Create_RR(Wireless_Receiving, 0);
 	//Task_Create_System(Wireless_Sending, 0);
 
