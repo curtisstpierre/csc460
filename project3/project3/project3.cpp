@@ -10,6 +10,7 @@
 #include "os.h"
 #include "BlockingUART.h"
 #include "sonar/Sonar.h"
+#include "uart/uart.h"
 #include <util/delay.h>
 #include <avr/io.h>
 #include <stdbool.h>
@@ -77,6 +78,12 @@ void Collect_Logic_RR(){
 }
 
 void Collect_Logic_Periodic(){
+	//uart_reset_receive();
+	//Roomba_Send_Byte(142);
+	//Roomba_Send_Byte(8);
+	//while (uart_bytes_received() < 1);
+	//roomba_sensor_packet.wall = uart_get_byte(0);
+	//uart_reset_receive();
 	// Add collection of all sensors and set appropriate information
 	//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
 	//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
@@ -89,7 +96,7 @@ void Collect_Logic_Periodic(){
 
 void Collect_Sonar_System(){
 	// Add collection of all sensors and set appropriate information
-	Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
+	//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
 	//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
 	//roomba_sensor_packet->distance - sensor in chasis and gives distance to an object
 	//roomba_sensor_packet->wall - sensor on the external of the roomba and says if you hit a wall (there are more for angles on this)
@@ -100,7 +107,7 @@ void Collect_Sonar_System(){
 // Telling the roomba to specifically drive
 void Send_Drive_Command(){
 	for(;;) {
-		if (program_state.sonar_value > 2000)
+		if (roomba_sensor_packet.wall < 1)
 		{
 			Roomba_Drive(program_state.v_drive,-1*program_state.v_turn);
 		}
@@ -219,9 +226,9 @@ void ir_rxhandler() {
 		PORTB ^= 1 << PB4;
 	} else if (ir_value == ENEMY_CODE){
 		program_state.state = 0;
-		PORTB |= 1 << PB5;
+		PORTB |= 1 << PB4;
 		_delay_ms(500);
-		PORTB ^= 1 << PB5;
+		PORTB ^= 1 << PB4;
 	}
 }
 
@@ -238,9 +245,9 @@ void setup(){
 	DDRB |= 1 << PB5; // Testing IR dead
 
 	//wirelessSetup();
-	SonarInit();
-	//IR_init();
-	Roomba_Init();
+	//SonarInit();
+	IR_init();
+	//Roomba_Init();
 	program_state.sonar_value = 100;
 	program_state.state = 1; // Set bot to alive
 	program_state.v_drive = 0; // Set bot to stand still
@@ -252,17 +259,16 @@ int r_main(){
 	setup();
 
 	while(!startGame){}; // Wait until game starts from interrupt (implement better)
-
 	// Add RTOS functions here
-	Task_Create_Periodic(IR_Transmit_Periodic, 0, 20, 1, 3);
-	Task_Create_Periodic(Collect_Logic_Periodic, 0, 20, 10, 0);
+	Task_Create_Periodic(IR_Transmit_Periodic, 0, 10, 1, 0);
+	//Task_Create_Periodic(Collect_Logic_Periodic, 0, 200, 150, 0);
 	//Task_Create_RR(Collect_Logic_RR, 0);
 	//Collect_Logic_Periodic();
 	//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet);
 	//PORTB ^= 1 << PB4;
 	//_delay_ms(500);
-	Task_Create_System(Collect_Sonar_System,0);
-	Task_Create_Periodic(Send_Drive_Command, 0, 20, 2, 7);
+	//Task_Create_System(Collect_Sonar_System,0);
+	//Task_Create_Periodic(Send_Drive_Command, 0, 200, 2, 160);
 	return 0;
 }
 
