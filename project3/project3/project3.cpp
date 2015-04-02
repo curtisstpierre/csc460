@@ -17,6 +17,7 @@
 // Transmitter
 #include "transmitter/packet.h"
 #include "transmitter/radio.h"
+#include "transmitter/cops_and_robbers.h"
 
 // IR lib
 #include "ir/ir.h"
@@ -72,11 +73,6 @@ void Collect_Logic_Periodic(){
 		//Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); - updates the sensors in the roombas chassis
 		//Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); - updates the external sensors of the bot
 
-		Roomba_Send_Byte(142);
-		Roomba_Send_Byte(8);
-		_delay_ms(20);
-		roomba_sensor_packet->wall = uart_get_byte(0);
-
 		/*Roomba_Send_Byte(142);
 		Roomba_Send_Byte(9);
 		_delay_ms(20);
@@ -130,16 +126,16 @@ void Wireless_Receiving(){
 
             if(radio_status == RADIO_RX_MORE_PACKETS || radio_status == RADIO_RX_SUCCESS) {
     			if(packet.type == GAMESTATE_PACKET){
-    				if(packet.payload.message.game_state == GAME_STARTNG){
+    				if(packet.payload.gamestate.game_state == GAME_STARTING){
     					startGame = 1;
     				}
-    				if(packet.payload.message.game_state == GAME_OVER){
+    				if(packet.payload.gamestate.game_state == GAME_OVER){
     					// Do Something
     				}
-    				if(packet.payload.message.roomba_states[program_state.id] == 0 && program_state.state == 1){
+    				if(packet.payload.gamestate.roomba_states[program_state.id] == 0 && program_state.state == 1){
     					Service_Publish(radio_service_response, 1);
     				}
-    				if(packet.payload.message.roomba_states[program_state.id] == 1 && program_state.state == 0){
+    				if(packet.payload.gamestate.roomba_states[program_state.id] == 1 && program_state.state == 0){
     					Service_Publish(radio_service_response, 0);
     				}
     			}
@@ -192,6 +188,9 @@ void ir_rxhandler() {
 	uint8_t ir_value = IR_getLast();
 	if (ir_value == TEAM_CODE){	
 		program_state.state = 1;
+		PORTB |= 1 << PB4;
+		_delay_ms(500);
+		PORTB ^= 1 << PB4;
 	} else if (ir_value == ENEMY_CODE){
 		program_state.state = 0;
 	}
@@ -208,6 +207,7 @@ void radio_rxhandler(uint8_t pipe_number){
  ***************************/
 void setup(){
 	//Wireless_Init();
+	DDRB |= 1 << PB4; // Testing IR alive
 	IR_init();
 	Roomba_Init();
 
@@ -228,7 +228,7 @@ int r_main(){
 
 	// Add RTOS functions here
 	Task_Create_Periodic(IR_Transmit_Periodic, 0, 50, 30, 33);
-	Task_Create_Periodic(Collect_Logic_Periodic, 0, 100, 30, 0);
+	Task_Create_Periodic(Collect_Logic_Periodic, 0, 50, 30, 0);
 	Task_Create_Periodic(Send_Drive_Command, 0, 50, 30, 67);
 	//Task_Create_RR(Wireless_Receiving, 0);
 	//Task_Create_System(Wireless_Sending, 0);
