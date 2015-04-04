@@ -41,7 +41,7 @@ void Roomba_UART_Init(UART_BPS baud){
 	UCSR1A = (1 << TXC1) | (0 << U2X1);
 	
 	// Enable receiver, transmitter, and rx complete interrupt.
-	UCSR1B = (1<<TXEN1);
+	UCSR1B = (1<<RXEN1)|(1<<TXEN1)|(1<<RXCIE1);  
 	// 8-bit data
 	UCSR1C = ((1<<UCSZ11)|(1<<UCSZ10));
 	// disable 2x speed
