@@ -106,21 +106,16 @@ void Collect_Logic_Periodic(){
 }
 
 void Patrol(){
-	while(angle.value < 90 && angle.value > -90)
-	{
-		Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet);
-		angle.value += roomba_sensor_packet.angle.value;
-		if (direction == 0){
-			program_state.v_drive = 100; // setting speed of roomba
-			program_state.v_turn = -1; // setting radius of roomba turn
-			Roomba_Drive(program_state.v_drive, program_state.v_turn);
-		}
-		else{
-			program_state.v_drive = 100; // setting speed of roomba
-			program_state.v_turn = 1; // setting radius of roomba turn
-			Roomba_Drive(program_state.v_drive, program_state.v_turn);
-		}
+	angle.value += roomba_sensor_packet.angle.value;
+	if (direction == 0 && angle.value < 90){
+		program_state.v_drive = 100; // setting speed of roomba
+		program_state.v_turn = 1; // setting radius of roomba turn
 	}
+	else if (direction == 1 && angle.value > -90){
+		program_state.v_drive = 100; // setting speed of roomba
+		program_state.v_turn = -1; // setting radius of roomba turn
+	}
+		
 	if (direction == 1){
 		direction = 0;
 	}
@@ -130,7 +125,6 @@ void Patrol(){
 	distance.value = 0;
 	angle.value = 0;
 	direction = 0;
-	Task_Next();
 }
 
 /************************************************************************/
@@ -141,7 +135,6 @@ void Patrol(){
 /************************************************************************/
 void Driving_Logic(){
 	//if the right bumper is hit turn left
-	distance.value += roomba_sensor_packet.distance.value;
 	if(roomba_sensor_packet.bumps_wheeldrops & RIGHT_BUMPER_HIT)
 	{
 		program_state.v_drive = 100; // setting speed of roomba
@@ -168,16 +161,19 @@ void Driving_Logic(){
 	//straight ahead till dawn
 	else{
 		if (cont_delay == 0){
-			if (distance.value > 50){
-				Task_Create_System(Patrol, 0);
+			if (distance.value > 500){
+				Patrol();
 			}
-			program_state.v_drive = 100; // setting speed of roomba
-			program_state.v_turn = 0; // setting radius of roomba turn
+			else{
+				program_state.v_drive = 200; // setting speed of roomba
+				program_state.v_turn = 0; // setting radius of roomba turn
+			}
 		}
 		else{
 			cont_delay--;
 		}
 	}
+	distance.value += program_state.v_drive / 4;
 }
 
 // Telling the roomba to specifically drive

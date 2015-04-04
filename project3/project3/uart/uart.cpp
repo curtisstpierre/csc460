@@ -66,7 +66,6 @@ void uart_reset_receive(void)
  */
 ISR(USART1_RX_vect)
 {
-	PORTB |= 1 << PB4;
     uart_buffer[uart_buffer_index] = UDR1;
     uart_buffer_index = (uart_buffer_index + 1) % UART_BUFFER_SIZE;
 }
