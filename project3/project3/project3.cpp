@@ -288,7 +288,7 @@ void setup(){
 	DDRB |= 1 << PB4; // Testing IR alive
 	IR_init();
 	Roomba_Init();
-
+	//Roomba_Play();
 	program_state.state = 1; // Set bot to alive
 	program_state.v_drive = 0; // Set bot to stand still
 	program_state.v_turn = 0; // Set bot to stand still

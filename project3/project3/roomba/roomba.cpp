@@ -131,3 +131,11 @@ void Roomba_Drive( int16_t velocity, int16_t radius )
 	Roomba_Send_Byte(HIGH_BYTE(radius));
 	Roomba_Send_Byte(LOW_BYTE(radius));
 }
+
+void Roomba_Play()
+{
+	int16_t song = 1;
+	Roomba_Send_Byte(PLAY);
+	Roomba_Send_Byte(HIGH_BYTE(song));
+	Roomba_Send_Byte(LOW_BYTE(song));
+}
