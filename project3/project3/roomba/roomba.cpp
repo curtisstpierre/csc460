@@ -67,7 +67,6 @@ void Roomba_UpdateSensorPacket(ROOMBA_SENSOR_GROUP group, roomba_sensor_data_t* 
 		break;
 	case CHASSIS:
 		// chassis sensors	
-		PORTB |= 1 << PB4;
 		while (uart_bytes_received() != 6);
 		sensor_packet->remote_opcode = uart_get_byte(0);
 		sensor_packet->buttons = uart_get_byte(1);
@@ -75,7 +74,6 @@ void Roomba_UpdateSensorPacket(ROOMBA_SENSOR_GROUP group, roomba_sensor_data_t* 
 		sensor_packet->distance.bytes.low_byte = uart_get_byte(3);
 		sensor_packet->angle.bytes.high_byte = uart_get_byte(4);
 		sensor_packet->angle.bytes.low_byte = uart_get_byte(5);
-		PORTB ^= 1 << PB4;
 		break;
 	case INTERNAL:
 		// internal sensors
@@ -90,6 +88,35 @@ void Roomba_UpdateSensorPacket(ROOMBA_SENSOR_GROUP group, roomba_sensor_data_t* 
 		sensor_packet->charge.bytes.low_byte = uart_get_byte(7);
 		sensor_packet->capacity.bytes.high_byte = uart_get_byte(8);
 		sensor_packet->capacity.bytes.low_byte = uart_get_byte(9);
+		break;
+	case LIGHT_SENSOR:
+		// light sensors sensors
+		while (uart_bytes_received() != 28);
+		sensor_packet->left_encoder_counts.bytes.high_byte = uart_get_byte(0);
+		sensor_packet->left_encoder_counts.bytes.low_byte = uart_get_byte(1);
+		sensor_packet->right_encoder_counts.bytes.high_byte = uart_get_byte(2);
+		sensor_packet->right_encoder_counts.bytes.low_byte = uart_get_byte(3);
+		sensor_packet->light_bumber = uart_get_byte(4);
+		sensor_packet->left_light_bumber_signal.bytes.high_byte = uart_get_byte(5);
+		sensor_packet->left_light_bumber_signal.bytes.low_byte = uart_get_byte(6);
+		sensor_packet->left_front_light_bumber_signal.bytes.high_byte = uart_get_byte(7);
+		sensor_packet->left_front_light_bumber_signal.bytes.low_byte = uart_get_byte(8);
+		sensor_packet->left_center_light_bumber_signal.bytes.high_byte = uart_get_byte(9);
+		sensor_packet->left_center_light_bumber_signal.bytes.low_byte = uart_get_byte(10);
+		sensor_packet->right_center_light_bumber_signal.bytes.high_byte = uart_get_byte(11);
+		sensor_packet->right_center_light_bumber_signal.bytes.low_byte = uart_get_byte(12);
+		sensor_packet->right_front_light_bumber_signal.bytes.high_byte = uart_get_byte(13);
+		sensor_packet->right_front_light_bumber_signal.bytes.low_byte = uart_get_byte(14);
+		sensor_packet->right_light_bumber_signal.bytes.high_byte = uart_get_byte(15);
+		sensor_packet->right_light_bumber_signal.bytes.low_byte = uart_get_byte(16);
+		sensor_packet->left_motor_current.bytes.high_byte = uart_get_byte(17);
+		sensor_packet->left_motor_current.bytes.low_byte = uart_get_byte(18);
+		sensor_packet->right_motor_current.bytes.high_byte = uart_get_byte(19);
+		sensor_packet->right_motor_current.bytes.low_byte = uart_get_byte(20);
+		sensor_packet->main_brush_motor_current.bytes.high_byte = uart_get_byte(21);
+		sensor_packet->main_brush_motor_current.bytes.low_byte = uart_get_byte(22);
+		sensor_packet->side_brush_motor_current.bytes.high_byte = uart_get_byte(23);
+		sensor_packet->side_brush_motor_current.bytes.low_byte = uart_get_byte(24);
 		break;
 	}
 	uart_reset_receive();
