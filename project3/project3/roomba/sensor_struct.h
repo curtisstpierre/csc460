@@ -68,10 +68,10 @@ typedef struct
 	uint16_u right_center_light_bumber_signal;
 	uint16_u right_front_light_bumber_signal;
 	uint16_u right_light_bumber_signal;
-	uint16_u left_motor_current;
-	uint16_u right_motor_current;
-	uint16_u main_brush_motor_current;
-	uint16_u side_brush_motor_current;
+	int16_u left_motor_current;
+	int16_u right_motor_current;
+	int16_u main_brush_motor_current;
+	int16_u side_brush_motor_current;
 
 	
 } roomba_sensor_data_t;
