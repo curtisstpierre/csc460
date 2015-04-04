@@ -34,6 +34,10 @@ SERVICE* radio_service_response;
 // Codes of two teams in game
 #define ENEMY_CODE (uint8_t)'B'
 #define TEAM_CODE (uint8_t)'A'
+#define LEFT_BUMPER_HIT 0x2
+#define RIGHT_BUMPER_HIT 0x1
+#define LEFT_LIGHT_BUMPER_HIT 0x7
+#define RIGHT_LIGHT_BUMPER_HIT 0x38
 
 // Packet for radio receive
 radiopacket_t packet;
@@ -53,7 +57,10 @@ roomba_state program_state;
 roomba_sensor_data_t roomba_sensor_packet;
 uint8_t startGame;
 uint8_t light;
-
+int cont_delay = 0; //used to keep a command going without sensor input
+int16_u distance; // keep track of accumulated distance
+int16_u angle;
+int direction = 0;
 /***************************
  * * * * * * * * * * * * * *
  *      RTOS Functions     *
@@ -98,31 +105,85 @@ void Collect_Logic_Periodic(){
 	}
 }
 
-// Telling the roomba to specifically drive
-void Send_Drive_Command(){
-	for(;;) {
-		if(roomba_sensor_packet.bumps_wheeldrops & 0x1)
-		{
-			program_state.v_drive = 100; // setting speed of roomba
-			program_state.v_turn = 1; // setting radius of roomba turn
-		}
-		else if (roomba_sensor_packet.bumps_wheeldrops & 0x2){
+void Patrol(){
+	while(angle.value < 90 && angle.value > -90)
+	{
+		Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet);
+		angle.value += roomba_sensor_packet.angle.value;
+		if (direction == 0){
 			program_state.v_drive = 100; // setting speed of roomba
 			program_state.v_turn = -1; // setting radius of roomba turn
-		}
-		else if(roomba_sensor_packet.light_bumber & 0x7)
-		{
-			program_state.v_drive = 100; // setting speed of roomba
-			program_state.v_turn = 1; // setting radius of roomba turn
-		}
-		else if (roomba_sensor_packet.light_bumber & 0x38){
-			program_state.v_drive = 100; // setting speed of roomba
-			program_state.v_turn = -1; // setting radius of roomba turn
+			Roomba_Drive(program_state.v_drive, program_state.v_turn);
 		}
 		else{
 			program_state.v_drive = 100; // setting speed of roomba
+			program_state.v_turn = 1; // setting radius of roomba turn
+			Roomba_Drive(program_state.v_drive, program_state.v_turn);
+		}
+	}
+	if (direction == 1){
+		direction = 0;
+	}
+	else{
+		direction = 1;
+	}
+	distance.value = 0;
+	angle.value = 0;
+	direction = 0;
+	Task_Next();
+}
+
+/************************************************************************/
+/* Driving logic tells the rooms which commands to enact				*/
+/* In it's current iteration the system will "Track" an object picked	*/
+/* up by it's light sensors and attempt to aim at it, if it hits		*/
+/* an object in front of it, it attempts to turn away                   */
+/************************************************************************/
+void Driving_Logic(){
+	//if the right bumper is hit turn left
+	distance.value += roomba_sensor_packet.distance.value;
+	if(roomba_sensor_packet.bumps_wheeldrops & RIGHT_BUMPER_HIT)
+	{
+		program_state.v_drive = 100; // setting speed of roomba
+		program_state.v_turn = 1; // setting radius of roomba turn
+		cont_delay = 5;
+	}
+	//if the left bumper is hit turn right
+	else if (roomba_sensor_packet.bumps_wheeldrops & LEFT_BUMPER_HIT){
+		program_state.v_drive = 100; // setting speed of roomba
+		program_state.v_turn = -1; // setting radius of roomba turn
+		cont_delay = 5;
+	}
+	//if the left light bumper(s) sense an object turn left
+	else if(roomba_sensor_packet.light_bumber & LEFT_LIGHT_BUMPER_HIT)
+	{
+		program_state.v_drive = 100; // setting speed of roomba
+		program_state.v_turn = 1; // setting radius of roomba turn
+	}
+	//if the right light bumper(s) sense an object turn right
+	else if (roomba_sensor_packet.light_bumber & RIGHT_LIGHT_BUMPER_HIT){
+		program_state.v_drive = 100; // setting speed of roomba
+		program_state.v_turn = -1; // setting radius of roomba turn
+	}
+	//straight ahead till dawn
+	else{
+		if (cont_delay == 0){
+			if (distance.value > 50){
+				Task_Create_System(Patrol, 0);
+			}
+			program_state.v_drive = 100; // setting speed of roomba
 			program_state.v_turn = 0; // setting radius of roomba turn
 		}
+		else{
+			cont_delay--;
+		}
+	}
+}
+
+// Telling the roomba to specifically drive
+void Send_Drive_Command(){
+	for(;;) {
+		Driving_Logic();
 		Roomba_Drive(program_state.v_drive, program_state.v_turn);
 		Task_Next();
 	}
@@ -235,7 +296,8 @@ void setup(){
 	program_state.state = 1; // Set bot to alive
 	program_state.v_drive = 0; // Set bot to stand still
 	program_state.v_turn = 0; // Set bot to stand still
-
+	distance.value = 0;
+	angle.value = 0;
 	startGame = 1; // Game hasnt started yet
 }
 
