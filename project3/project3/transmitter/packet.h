@@ -1,5 +1,9 @@
 /*
  * packet.h
+ *
+ *  Created on: 26-Apr-2009
+ *	Updated on: 26-Jan
+ *      Author: Neil MacMillan, Daniel McIlvaney
  */
 
 #ifndef PACKET_H_
@@ -21,19 +25,6 @@ typedef enum _pt
 
 /*****							Construct payload format structures							*****/
 //								structures must be 29 bytes long or less.
-
-typedef struct _gs_pkt
-{
-	uint8_t game_state;
-	uint8_t roomba_states[4];
-} pf_gamestate_t;
-
-/// Packet for roomba response if the gamestate is incorrect.
-typedef struct _roomba_pkt
-{
-	uint8_t roomba_id;
-	uint8_t roomba_state;
-} pf_roombastate_t;
 
 /// Extranious unused packet from the original provided packet structure.
 typedef struct _msg
