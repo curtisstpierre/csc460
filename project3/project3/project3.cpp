@@ -74,7 +74,7 @@ int lockon = 0;
 
 void IR_Transmit_Periodic(){
 	for(;;) {
-		if(program_state.state == 1 || startGame == 0)
+		if(program_state.state & DEAD || startGame == 0)
 		{
 			// Add something funny here
 		} else{
@@ -107,7 +107,7 @@ void Patrol(){
 		program_state.v_drive = 200; // setting speed of roomba
 		program_state.v_turn = -1; // setting radius of roomba turn counterclockwise
 	}
-	if(angle > 5){
+	if(angle > 4){
 		if (direction == 1){
 			direction = 0;
 		}
@@ -115,6 +115,7 @@ void Patrol(){
 			direction = 1;
 		}
 		distance.value = 0;
+		angle = 0;
 	}
 	angle++;
 }
@@ -126,7 +127,7 @@ void Patrol(){
 /* an object in front of it, it attempts to turn away                   */
 /************************************************************************/
 void Driving_Logic(){
-	if(program_state.state == 1)
+	if(program_state.state & DEAD)
 	{
 		program_state.v_drive = 0; // setting speed of roomba
 		program_state.v_turn = 0; // setting radius of roomba turn
@@ -137,12 +138,14 @@ void Driving_Logic(){
 			program_state.v_drive = 100; // setting speed of roomba
 			program_state.v_turn = 1; // setting radius of roomba turn
 			cont_delay = 5;
+			distance.value = 0;
 		}
 		//if the left bumper is hit turn right
 		else if (roomba_sensor_packet.bumps_wheeldrops & LEFT_BUMPER_HIT){
 			program_state.v_drive = 100; // setting speed of roomba
 			program_state.v_turn = -1; // setting radius of roomba turn
 			cont_delay = 5;
+			distance.value = 0;
 		}
 		else if (lockon > 10){
 			program_state.v_drive = 200; // setting speed of roomba
@@ -171,11 +174,11 @@ void Driving_Logic(){
 		//straight ahead till dawn
 		else{
 			if (cont_delay == 0){
-				if (distance.value > 500){
+				if (distance.value > 1500){
 					Patrol();
 				}
 				else{
-					program_state.v_drive = 200; // setting speed of roomba
+					program_state.v_drive = 300; // setting speed of roomba
 					program_state.v_turn = 0; // setting radius of roomba turn
 				}
 			}
@@ -223,14 +226,25 @@ void Wireless_Receiving(){
 	    				if(in_packet.payload.gamestate.game_state == GAME_RUNNING){
 	    					startGame = 1;
 	    				}
-	    				if(in_packet.payload.gamestate.game_state == GAME_OVER && (program_state.state & ~DEAD)){
-	    					Roomba_Drive(100, -1);
+	    				if(in_packet.payload.gamestate.game_state == GAME_OVER && (program_state.state & DEAD) == 0){
+							program_state.v_drive = 100;
+							program_state.v_turn = -1;
+							Roomba_Drive(program_state.v_drive, program_state.v_turn);
 	    				}
 	    				if(in_packet.payload.gamestate.roomba_states[program_state.id] != program_state.state){
 	    					Service_Publish(radio_service_response, 1);
 	    				}
 	    			}else {
                         program_state.state = in_packet.payload.gamestate.roomba_states[program_state.id];
+						if(in_packet.payload.gamestate.game_state == GAME_RUNNING){
+							startGame = 1;
+						}
+						if(in_packet.payload.gamestate.game_state == GAME_OVER && (program_state.state & DEAD) == 0){
+							startGame = 0;
+							program_state.v_drive = 100;
+							program_state.v_turn = -1;
+							Roomba_Drive(program_state.v_drive, program_state.v_turn);
+						}
                     }
     			}
     			break;
