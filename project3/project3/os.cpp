@@ -855,12 +855,14 @@ static void kernel_update_ticker(void)
         * loop through all periodic tasks and lower their ticks
         * ticks keep track of when the task must run next
         */
-        task_descriptor_t* periodic_task = periodic_list.head;
-        while(periodic_task != NULL)
-        {
-            periodic_task->ticks--;
-            periodic_task = periodic_task->next;
-        }
+		if (cur_task->level != SYSTEM){
+			task_descriptor_t* periodic_task = periodic_list.head;
+			while(periodic_task != NULL)
+			{
+				periodic_task->ticks--;
+				periodic_task = periodic_task->next;
+			}
+		}
     }
 }
 

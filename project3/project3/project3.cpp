@@ -30,6 +30,7 @@
 
 SERVICE* radio_service;
 SERVICE* radio_service_response;
+SERVICE* ir_interrupt_service;
 
 #define LEFT_BUMPER_HIT 0x2
 #define RIGHT_BUMPER_HIT 0x1
@@ -40,8 +41,8 @@ SERVICE* radio_service_response;
 radiopacket_t in_packet;
 radiopacket_t out_packet;
 
-uint8_t station_addr[5] = { 0xA7, 0xA7, 0xA7, 0xA7, 0xA7 }; // Receiver address
-uint8_t my_addr[5] = { 0x6b, 0x6b, 0x6b, 0x6b, 0x6b }; // Transmitter address
+uint8_t station_addr[5] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; // Receiver address
+uint8_t my_addr[5] = {0x4A,0x4A,0x4A,0x4A,0x4A}; // Transmitter address
 
 typedef struct {
 	COPS_AND_ROBBERS id = COP1;
@@ -61,8 +62,9 @@ IR_TEAM_CODE TEAM_CODE = COP_CODE;
 
 int cont_delay = 0; //used to keep a command going without sensor input
 int16_u distance; // keep track of accumulated distance
-int16_u angle;
+int angle;
 int direction = 0;
+int lockon = 0;
 
 /***************************
  * * * * * * * * * * * * * *
@@ -72,47 +74,49 @@ int direction = 0;
 
 void IR_Transmit_Periodic(){
 	for(;;) {
-		if((program_state.state & DEAD) > 0)
+		if(program_state.state == 1 || startGame == 0)
 		{
 			// Add something funny here
 		} else{
 			IR_transmit(TEAM_CODE);
-			Task_Next();
 		}
-	}
-}
-
-void Collect_Logic_Periodic(){
-	for(;;) {
-		// Add collection of all sensors and set appropriate information
-		Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
-		Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
-		Roomba_UpdateSensorPacket(LIGHT_SENSOR, &roomba_sensor_packet); // updates the light sensors of the bot
-
 		Task_Next();
 	}
 }
 
+void Collect_Logic_Periodic(){
+	
+		for(;;) {
+			if (startGame == 1){
+				// Add collection of all sensors and set appropriate information
+				Roomba_UpdateSensorPacket(CHASSIS, &roomba_sensor_packet); // updates the sensors in the roombas chassis
+				Roomba_UpdateSensorPacket(EXTERNAL, &roomba_sensor_packet); // updates the external sensors of the bot
+				Roomba_UpdateSensorPacket(LIGHT_SENSOR, &roomba_sensor_packet); // updates the light sensors of the bot
+			}
+			Task_Next();
+		}
+}
+
 void Patrol(){
-	angle.value += roomba_sensor_packet.angle.value;
-	if (direction == 0 && angle.value < 90){
-		program_state.v_drive = 100; // setting speed of roomba
-		program_state.v_turn = 1; // setting radius of roomba turn
-	}
-	else if (direction == 1 && angle.value > -90){
-		program_state.v_drive = 100; // setting speed of roomba
-		program_state.v_turn = -1; // setting radius of roomba turn
-	}
-		
+	// counterclockwise positive // clockwise negative
 	if (direction == 1){
-		direction = 0;
+		program_state.v_drive = 200; // setting speed of roomba
+		program_state.v_turn = 1; // setting radius of roomba turn clockwise
 	}
-	else{
-		direction = 1;
+	else if (direction == 0){
+		program_state.v_drive = 200; // setting speed of roomba
+		program_state.v_turn = -1; // setting radius of roomba turn counterclockwise
 	}
-	distance.value = 0;
-	angle.value = 0;
-	direction = 0;
+	if(angle > 5){
+		if (direction == 1){
+			direction = 0;
+		}
+		else{
+			direction = 1;
+		}
+		distance.value = 0;
+	}
+	angle++;
 }
 
 /************************************************************************/
@@ -122,7 +126,7 @@ void Patrol(){
 /* an object in front of it, it attempts to turn away                   */
 /************************************************************************/
 void Driving_Logic(){
-	if((program_state.state & DEAD) > 0)
+	if(program_state.state == 1)
 	{
 		program_state.v_drive = 0; // setting speed of roomba
 		program_state.v_turn = 0; // setting radius of roomba turn
@@ -140,14 +144,27 @@ void Driving_Logic(){
 			program_state.v_turn = -1; // setting radius of roomba turn
 			cont_delay = 5;
 		}
+		else if (lockon > 10){
+			program_state.v_drive = 200; // setting speed of roomba
+			program_state.v_turn = -1; // setting radius of roomba turn
+			if (lockon == 11){
+				lockon = 17;
+			}
+			if (lockon == 12){
+				lockon=1;
+			}
+			lockon--;			
+		}
 		//if the left light bumper(s) sense an object turn left
 		else if(roomba_sensor_packet.light_bumber & LEFT_LIGHT_BUMPER_HIT)
 		{
+			lockon += 1;
 			program_state.v_drive = 100; // setting speed of roomba
 			program_state.v_turn = 1; // setting radius of roomba turn
 		}
 		//if the right light bumper(s) sense an object turn right
 		else if (roomba_sensor_packet.light_bumber & RIGHT_LIGHT_BUMPER_HIT){
+			lockon += 1;
 			program_state.v_drive = 100; // setting speed of roomba
 			program_state.v_turn = -1; // setting radius of roomba turn
 		}
@@ -165,18 +182,20 @@ void Driving_Logic(){
 			else{
 				cont_delay--;
 			}
+			distance.value += program_state.v_drive / 4;
 		}
-		distance.value += program_state.v_drive / 4;
 	}
 }
 
 // Telling the roomba to specifically drive
 void Send_Drive_Command(){
-	for(;;) {
-		Driving_Logic();
-		Roomba_Drive(program_state.v_drive, program_state.v_turn);
-		Task_Next();
-	}
+		for(;;) {
+			if(startGame == 1){
+				Driving_Logic();
+				Roomba_Drive(program_state.v_drive, program_state.v_turn);
+			}
+			Task_Next();
+		}
 }
 
 /***************************
@@ -192,27 +211,26 @@ void Wireless_Receiving(){
 
     for(;;){
         Service_Subscribe(radio_service, &radio_service_value);
-
         do {
             radio_status = Radio_Receive(&in_packet);
 
             if(radio_status == RADIO_RX_MORE_PACKETS || radio_status == RADIO_RX_SUCCESS) {
     			if(in_packet.type == GAMESTATE_PACKET){
-    				if((in_packet.payload.gamestate.roomba_states[roomba_state.id] & FORCED) == 0) {
-    					if(program_state.state & FORCED != 0) {
-    						program_state.state = in_packet.payload.gamestate.roomba_states[roomba_state.id];
+    				if((in_packet.payload.gamestate.roomba_states[program_state.id] & FORCED) == 0) {
+    					if((program_state.state & FORCED) != 0) {
+    						program_state.state = in_packet.payload.gamestate.roomba_states[program_state.id];
     					}
 	    				if(in_packet.payload.gamestate.game_state == GAME_RUNNING){
 	    					startGame = 1;
 	    				}
-	    				if(in_packet.payload.gamestate.game_state == GAME_OVER && ){
+	    				if(in_packet.payload.gamestate.game_state == GAME_OVER && (program_state.state & ~DEAD)){
 	    					Roomba_Drive(100, -1);
 	    				}
-	    				if(in_packet.payload.gamestate.roomba_states[roomba_state.id] != program_state.state){
+	    				if(in_packet.payload.gamestate.roomba_states[program_state.id] != program_state.state){
 	    					Service_Publish(radio_service_response, 1);
 	    				}
 	    			}else {
-                        program_state.state = in_packet.payload.gamestate.roomba_states[roomba_state.id];
+                        program_state.state = in_packet.payload.gamestate.roomba_states[program_state.id];
                     }
     			}
     			break;
@@ -246,13 +264,34 @@ void Wireless_Sending(){
  ***************************/
 
 void Wireless_Init(){
+	// RADIO INITIALIZATION
+	DDRL |= (1 << PL2);
+	PORTL &= ~(1 << PL2);
+	_delay_ms(500);  /* max is 262.14 ms / F_CPU in MHz */
+	PORTL |= 1 << PL2;
+	_delay_ms(500);
+	
 	Radio_Init();
 
 	// configure the receive settings for radio pipe 0
 	Radio_Configure_Rx(RADIO_PIPE_0, my_addr, ENABLE);
 	// configure radio transceiver settings.
-	Radio_Configure(RADIO_2MBPS, RADIO_HIGHEST_POWER);
+	Radio_Configure(RADIO_1MBPS, RADIO_HIGHEST_POWER);
 	Radio_Set_Tx_Addr(station_addr);
+}
+
+void ir_shots_recieved(){
+	int16_t radio_response_service_value;
+	for(;;){
+		Service_Subscribe(ir_interrupt_service, &radio_response_service_value);
+		uint8_t ir_value = IR_getLast();
+		if (ir_value == TEAM_CODE){
+			program_state.state &= ~DEAD;
+		} else if (ir_value == ENEMY_CODE){
+			program_state.state |= DEAD;
+		}
+	}
+	
 }
 
 /***************************
@@ -261,15 +300,7 @@ void Wireless_Init(){
  * * * * * * * * * * * * * *
  ***************************/
 void ir_rxhandler() {
-	uint8_t ir_value = IR_getLast();
-	if (ir_value == TEAM_CODE){	
-		program_state.state = 1;
-		PORTB |= 1 << PB4;
-		_delay_ms(500);
-		PORTB ^= 1 << PB4;
-	} else if (ir_value == ENEMY_CODE){
-		program_state.state = 0;
-	}
+	Service_Publish(ir_interrupt_service, 0);
 }
 
 void radio_rxhandler(uint8_t pipe_number){
@@ -284,34 +315,33 @@ void radio_rxhandler(uint8_t pipe_number){
 void setup(){
 	DDRB |= 1 << PB4; // Testing IR alive
 
-	Wireless_Init();
 	IR_init();
 	Roomba_Init();
 
-	program_state.state = ALIVE; // Set bot to alive
+	program_state.state &= ~DEAD; // Set bot to alive
 	program_state.v_drive = 0; // Set bot to stand still
 	program_state.v_turn = 0; // Set bot to stand still
 
 	distance.value = 0;
-	angle.value = 0;
-	startGame = 0; // Game hasnt started yet
+	angle= 0;
+	startGame = 0; // Game hasn't started yet
 }
 
 int r_main(){
 	setup();
-
-	while(!startGame){}; // Wait until game starts from interupt (implement better)
-
 	radio_service = Service_Init();
-    radio_service_response = Service_Init();
-
-	// Add RTOS functions here
-	Task_Create_Periodic(IR_Transmit_Periodic, 0, 50, 5, 46);
-	Task_Create_Periodic(Collect_Logic_Periodic, 0, 50, 40, 0);
-	Task_Create_Periodic(Send_Drive_Command, 0, 50, 5, 41);
+	radio_service_response = Service_Init();
+	ir_interrupt_service = Service_Init();
+	Task_Create_System(ir_shots_recieved, 0);
 	Task_Create_System(Wireless_Receiving, 0);
 	Task_Create_System(Wireless_Sending, 0);
+	Task_Create_Periodic(IR_Transmit_Periodic, 0, 50, 5, 41);
+	//Task_Create_RR(IR_Transmit_Periodic, 0);
+	Task_Create_Periodic(Collect_Logic_Periodic, 0, 50, 40, 0);
+	Task_Create_Periodic(Send_Drive_Command, 0, 50, 5, 46);
+	//Task_Create_RR(Send_Drive_Command, 0);
 
+	Wireless_Init();
 	return 0;
 }
 
