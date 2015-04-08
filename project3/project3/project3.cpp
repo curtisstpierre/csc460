@@ -83,7 +83,9 @@ void IR_Transmit_Periodic(){
 		Task_Next();
 	}
 }
-
+/************************************************************************/
+/* This function collects all sensor data from the roomba               */
+/************************************************************************/
 void Collect_Logic_Periodic(){
 	
 		for(;;) {
@@ -96,7 +98,9 @@ void Collect_Logic_Periodic(){
 			Task_Next();
 		}
 }
-
+/************************************************************************/
+/* Handles turning based on time distance and previous directions       */
+/************************************************************************/
 void Patrol(){
 	// counterclockwise positive // clockwise negative
 	if (direction == 1){
@@ -294,6 +298,10 @@ void Wireless_Init(){
 	Radio_Set_Tx_Addr(station_addr);
 }
 
+/************************************************************************/
+/* If shot received from enemy die (or stay dead)                       */
+/* If shot received by ally then revive (or stay alive)					*/
+/************************************************************************/
 void ir_shots_recieved(){
 	int16_t radio_response_service_value;
 	for(;;){
@@ -313,10 +321,17 @@ void ir_shots_recieved(){
  *       Interrupts        *
  * * * * * * * * * * * * * *
  ***************************/
+
+/************************************************************************/
+/* Handler for recieved IR shots                                     */
+/************************************************************************/
 void ir_rxhandler() {
 	Service_Publish(ir_interrupt_service, 0);
 }
 
+/************************************************************************/
+/* Handler for wireless information being received                      */
+/************************************************************************/
 void radio_rxhandler(uint8_t pipe_number){
     Service_Publish(radio_service, pipe_number);
 }
